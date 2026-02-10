@@ -1,0 +1,457 @@
+{
+  "schemaVersion": "1.0.0",
+  "projectStateVersion": 12,
+  "summary": "Ramp Track now includes expanded UX and admin/operator capabilities beyond the original operator-only scope: (1) a dedicated pre-role Login screen (manual + badge scan) that sets a current user with roles and gates access to role selection; (2) a localStorage-backed Equipment Registry managed from an Admin “Manage Equipment” screen and enforced by agent scan flows (unknown equipment blocked); (3) unified, shared camera scanner UI used by both login and equipment flows, with added scan guide line and later extended barcode format support (incl. 1D formats + PDF_417) plus optional torch/beep/vibration requirements; (4) management dashboards with filtering, drill-down details, and planned scan/audit history by user/equipment with GPS-derived gate labeling. The project also entered a stabilization phase focused on startup/auth hydration (AuthProvider mounting, session persistence keys, isAuthReady deadlocks), service worker stale-cache mitigation, and deployment/publish/credit issues within the hosting platform.",
+  "architectural_notes": [
+    "Frontend is a React + TypeScript SPA built with Vite and Tailwind; view routing is handled by an internal `view` state + switch statement (no React Router).",
+    "State/persistence relies heavily on localStorage: session (`ramptrack_v2_session`), equipment registry (`ramptrack_equipment_registry`), scan audit log (`ramptrack_scan_audit`).",
+    "Scanning is implemented with a custom `EquipmentQRScanner` that loads ZXing Browser from a CDN and runs a manual `requestAnimationFrame` decode loop using `decodeFromCanvas`, with UI updates done via refs/DOM mutation to minimize React re-renders.",
+    "GPS capture uses `navigator.geolocation` and an automatic gate labeler using Haversine distance against a static gate coordinate set.",
+    "React Query (`@tanstack/react-query`) is used to fetch/mutate backend state (equipment, assignments, issues, activity logs, user profile, current time) and invalidate caches after mutations.",
+    "Authentication in the UI is primarily roster-based (client-side `userRoster.ts` credential validation) with a session hydration/ready flag in `AuthContext`; Internet Identity is present via `InternetIdentityProvider` and `useActor`, but not clearly wired to UI login flows.",
+    "PWA implementation includes `manifest.json`, a custom service worker (`public/sw.js`) with versioned caches, network-first navigation strategy, cache-first assets strategy, and auto-update orchestration in `index.html`.",
+    "Backend is a Motoko ICP canister with an `AccessControl` module (first non-anonymous initializer becomes admin), Maps for all domain entities, and strict permission/ownership checks for non-admin actions (e.g., only check in equipment assigned to you).",
+    "Blob storage capabilities are included via `blob-storage/Mixin.mo` and `blob-storage/Storage.mo`, supporting authorization, dead-blob pruning, and cycles top-up/refill flows.",
+    "UX recovery patterns include a SplashScreen gate (until auth hydration completes), a ReconnectingOverlay (tied to refresh state), and an ErrorBoundary that can clear cache/service workers and reload."
+  ],
+  "known_issues": [
+    "Critical: `frontend/src/main.tsx` does not wrap `<App />` with the `AuthProvider` from `frontend/src/contexts/AuthContext.tsx`, yet most pages call `useAuth()`. This likely leaves the app using the context’s default placeholder values (auth never set, login functions no-op).",
+    "Auth/session storage key mismatch across modules: `AuthContext` uses `ramptrack_v2_session`, while `ensureUserContext.getLocalUserContext()` reads `ramptrack_auth_state`/`currentUser`, `apiClient` uses `ramptrack_auth_token`, and `handleAuthError()` clears different keys. This can cause validation, logout, and refresh behaviors to be inconsistent.",
+    "`ensureUserContext()` currently performs only local checks and never validates the ICP backend session/identity; however it is used as a guard before write mutations, giving a false sense of backend-auth validation.",
+    "Frontend login is roster-based with credentials embedded client-side (`USER_ROSTER` includes passwords). This is not secure for production and is suitable only for demos/prototypes.",
+    "Internet Identity is set up (`InternetIdentityProvider`, `useActor` calls `actor.initializeAccessControl()`), but there is no evident UI flow invoking `useInternetIdentity().login()`. Backend calls requiring #user/#admin will likely fail for anonymous principals.",
+    "Dual-source-of-truth risk: check-in/out flows update local registry/history/audit logs before awaiting backend mutations; if backend calls fail, local state may diverge from backend state.",
+    "Equipment event history (`lib/equipmentHistory.ts`) is in-memory only and is lost on page reload; audit log is persisted but event history is not.",
+    "Some referenced components/pages are empty stubs in the provided snapshot (`PWAUpdateNotification.tsx`, `OfflineIndicator.tsx`, `AuthDiagnosticsPanel.tsx`, `DemoLoginHandler.tsx`, `ProfileSetupScreen.tsx`, `RampControl.tsx`), indicating incomplete/placeholder functionality.",
+    "Historical incident report indicates unresolved scanner flicker and ICP deployment asset/MIME/service-worker conflicts; the service worker contains bypass logic for bundles, but production issues may persist depending on hosting/caching behavior.",
+    "App.tsx appears to use stored view/screen state (not derived directly from AuthContext auth during render), which can prevent the UI from transitioning after login if the view state is not recomputed when auth becomes non-null."
+  ],
+  "isFixRequest": true,
+  "existing_features": [
+    {
+      "id": "IF-1",
+      "title": "Progressive Web App (PWA) packaging with installability and shortcuts",
+      "synonyms": [
+        "manifest",
+        "web app manifest",
+        "installable app"
+      ],
+      "description": "Includes `public/manifest.json` defining app metadata, icons, screenshots, and home-screen shortcuts for Check Out / Check In / Report Issue. `index.html` contains PWA meta tags and preload hints for critical images.",
+      "reqIds": [],
+      "version": 1
+    },
+    {
+      "id": "IF-2",
+      "title": "Service worker offline caching and auto-update lifecycle",
+      "synonyms": [
+        "offline mode",
+        "SW caching",
+        "auto refresh"
+      ],
+      "description": "Custom service worker (`public/sw.js`) with versioned caches, cache cleanup on activate, network-first navigation (HTML) strategy, cache-first static assets strategy, and explicit bypass logic for build assets to reduce MIME/caching issues. `index.html` registers the SW, forces periodic update checks, and triggers `SKIP_WAITING` and reload on controller changes.",
+      "reqIds": [],
+      "version": 1
+    },
+    {
+      "id": "IF-3",
+      "title": "Splash screen during app startup/hydration",
+      "synonyms": [
+        "launch screen",
+        "loading screen"
+      ],
+      "description": "`SplashScreen` shows a full-screen branded image with a loading indicator. `App.tsx` renders splash when auth hydration is not ready.",
+      "reqIds": [],
+      "version": 1
+    },
+    {
+      "id": "IF-4",
+      "title": "Global error boundary with cache/service-worker reset tools",
+      "synonyms": [
+        "crash screen",
+        "recovery UI"
+      ],
+      "description": "`ErrorBoundary` catches runtime errors and displays a branded fallback UI with actions to reload and to clear localStorage/sessionStorage, unregister service workers, clear Cache Storage, then reload.",
+      "reqIds": [],
+      "version": 1
+    },
+    {
+      "id": "IF-5",
+      "title": "Local roster-based authentication and session persistence",
+      "synonyms": [
+        "demo auth",
+        "client-side auth"
+      ],
+      "description": "`AuthContext` validates credentials/badges against `USER_ROSTER`, constructs an auth session (user/role/badgeId/name), and persists it to localStorage (`ramptrack_v2_session`). Includes hydration logic and `isAuthReady`/`hydrationCompleted` readiness flags, plus a `refreshSession()` mechanism and a visible reconnecting state.",
+      "reqIds": [],
+      "version": 1
+    },
+    {
+      "id": "IF-6",
+      "title": "Multi-mode sign-in UX (manual, camera badge scan, keyboard-wedge scan)",
+      "synonyms": [
+        "badge login",
+        "scanner login"
+      ],
+      "description": "`LoginScreen` supports manual username/password login, opening a badge scanner for camera-based badge scans, and rapid-input/\\n-terminated keyboard-wedge scanning that parses badge IDs and triggers login. Includes auth readiness guards and visible error banners.",
+      "reqIds": [],
+      "version": 1
+    },
+    {
+      "id": "IF-7",
+      "title": "Role selection and sign-on flow screens",
+      "synonyms": [
+        "role chooser",
+        "agent/admin selection"
+      ],
+      "description": "`RoleSelectionScreen` and `SignOnScreen` provide role-based continuation paths (agent vs management/admin) with branded image buttons and back navigation. Display name comes from auth context with fallbacks.",
+      "reqIds": [],
+      "version": 1
+    },
+    {
+      "id": "IF-8",
+      "title": "Operator/agent home menu navigation",
+      "synonyms": [
+        "agent menu",
+        "operator home"
+      ],
+      "description": "`OperatorHomeScreen` presents three primary actions (Take Equipment, Return Equipment, Report Issue) with large touch-friendly cards and icon fallbacks, showing the signed-in user name from auth context.",
+      "reqIds": [],
+      "version": 1
+    },
+    {
+      "id": "IF-9",
+      "title": "Local equipment registry with auto-seeded fleet and history entries",
+      "synonyms": [
+        "equipment catalog",
+        "local equipment database"
+      ],
+      "description": "`lib/equipmentRegistry.ts` implements a localStorage-backed equipment registry with automatic initialization of a fleet range (TV0989–TV1344) plus required IDs, and tracks per-equipment history entries for CREATED/CHECKOUT/RETURN/MAINTENANCE. Provides CRUD helpers, status counts, and ID normalization.",
+      "reqIds": [],
+      "version": 1
+    },
+    {
+      "id": "IF-10",
+      "title": "Equipment ID normalization and validation utilities",
+      "synonyms": [
+        "ID cleanup",
+        "TV#### extraction"
+      ],
+      "description": "`normalizeEquipmentId()` trims/uppercases/removes spaces and extracts TV#### patterns from scanned strings (including prefixed text/URLs). Used by scan workflows and registry lookups to ensure consistent IDs.",
+      "reqIds": [],
+      "version": 1
+    },
+    {
+      "id": "IF-11",
+      "title": "Unified QR/barcode scanner component with torch support and anti-flicker measures",
+      "synonyms": [
+        "ZXing scanner",
+        "EquipmentQRScanner"
+      ],
+      "description": "`EquipmentQRScanner` loads ZXing Browser from CDN, requests the camera once, attaches stream to a stable memoized `<video>`, decodes using a manual RAF loop + `decodeFromCanvas`, supports torch toggling when available, and provides beep/vibration feedback. Includes duplicate scan suppression (login mode) and uses DOM refs for UI updates to reduce re-renders.",
+      "reqIds": [],
+      "version": 1
+    },
+    {
+      "id": "IF-12",
+      "title": "Generic camera hook with photo capture and camera switching",
+      "synonyms": [
+        "useCamera",
+        "photo capture"
+      ],
+      "description": "`camera/useCamera.ts` wraps `getUserMedia` for start/stop/switch/retry and captures photos to a `File` via canvas. Used by issue reporting for optional photo evidence.",
+      "reqIds": [],
+      "version": 1
+    },
+    {
+      "id": "IF-13",
+      "title": "GPS capture with automatic gate location labeling",
+      "synonyms": [
+        "auto gate locator",
+        "Haversine gate detection"
+      ],
+      "description": "Check-in/out uses `navigator.geolocation` to capture coordinates and accuracy. `autoGateLocator.ts` computes nearest gate within a 120m threshold using a Haversine distance table; `data/gates.ts` provides static gate coordinates (A1, B1–B28).",
+      "reqIds": [],
+      "version": 1
+    },
+    {
+      "id": "IF-14",
+      "title": "Equipment check-out workflow (scan → GPS → local update → backend write)",
+      "synonyms": [
+        "Take Equipment",
+        "checkout"
+      ],
+      "description": "`CheckOutScreen` scans equipment IDs, validates availability against local registry, captures GPS and gate label, validates session via `ensureUserContext`, updates local registry/history, appends an audit event with GPS, and then performs backend mutations (create assignment, update equipment, log activity) via React Query hooks. Includes user feedback via toasts and reconnecting/processing UI states.",
+      "reqIds": [],
+      "version": 1
+    },
+    {
+      "id": "IF-15",
+      "title": "Equipment check-in workflow (scan → GPS → local update → backend write)",
+      "synonyms": [
+        "Return Equipment",
+        "checkin"
+      ],
+      "description": "`CheckInScreen` scans equipment IDs, validates ASSIGNED state locally, captures GPS and gate label, validates session via `ensureUserContext`, updates local registry/history, appends an audit event with GPS, and performs backend mutations (create assignment, update equipment, log activity). Includes toasts and reconnection/processing UI states.",
+      "reqIds": [],
+      "version": 1
+    },
+    {
+      "id": "IF-16",
+      "title": "Issue reporting workflow with optional photo and equipment grounding",
+      "synonyms": [
+        "maintenance report",
+        "ground equipment"
+      ],
+      "description": "`ReportIssueScreen` scans equipment, collects category/location/notes, can capture a photo via `useCamera`, and can mark equipment as grounded (local MAINTENANCE). Submits an Issue to the backend (including optional blob), optionally updates backend equipment to maintenance, and logs an activity entry. Session validation occurs before write operations.",
+      "reqIds": [],
+      "version": 1
+    },
+    {
+      "id": "IF-17",
+      "title": "Local scan audit logging with GPS and drill-down filters",
+      "synonyms": [
+        "scan history",
+        "audit trail"
+      ],
+      "description": "`lib/auditLog.ts` persists up to 250 scan events to localStorage, storing action, equipmentId, locationLabel, lat/lng/accuracy, and user identity fields. Admin dashboard supports searching and drilling down by equipment or user to view historical scans.",
+      "reqIds": [],
+      "version": 1
+    },
+    {
+      "id": "IF-18",
+      "title": "Admin dashboard for equipment oversight and operational visibility",
+      "synonyms": [
+        "management dashboard",
+        "admin menu"
+      ],
+      "description": "`AdminDashboard` shows equipment counts, filtering (operator/equipment/status), interactive scan history table with GPS, equipment details dialogs, and recent backend activity logs. Provides navigation to equipment management and performs session validation via `ensureUserContext` before sensitive operations.",
+      "reqIds": [],
+      "version": 1
+    },
+    {
+      "id": "IF-19",
+      "title": "Admin equipment management (add/edit/search) in local registry",
+      "synonyms": [
+        "Manage Equipment",
+        "equipment CRUD"
+      ],
+      "description": "`ManageEquipmentScreen` allows admins to add new equipment, search/filter registry, and edit equipment label/status via a dialog. All write operations are gated by `ensureUserContext`. Changes persist to localStorage via `equipmentRegistry` utilities.",
+      "reqIds": [],
+      "version": 1
+    },
+    {
+      "id": "IF-20",
+      "title": "Equipment detail screen with event history timeline",
+      "synonyms": [
+        "equipment profile",
+        "event log view"
+      ],
+      "description": "`EquipmentDetailScreen` renders read-only equipment details from the local registry and displays in-memory event history from `equipmentHistory` (CHECK_OUT/CHECK_IN/REPORT_ISSUE) with timestamps and notes.",
+      "reqIds": [],
+      "version": 1
+    },
+    {
+      "id": "IF-21",
+      "title": "React Query + ICP actor data layer for backend operations",
+      "synonyms": [
+        "useQueries",
+        "useActor"
+      ],
+      "description": "`useActor` creates an ICP backend actor (anonymous or authenticated via Internet Identity identity if present) and initializes backend access control. `useQueries` provides query/mutation hooks for equipment, assignments, issues, activity logs, user profile, and current time, with cache invalidation after writes and defensive error handling returning empty results on failures.",
+      "reqIds": [],
+      "version": 1
+    },
+    {
+      "id": "IF-22",
+      "title": "Centralized API client with auth headers, structured profile-missing handling, and refresh-state subscriptions",
+      "synonyms": [
+        "apiRequest",
+        "authenticated fetch"
+      ],
+      "description": "`lib/apiClient.ts` performs authenticated fetches using a bearer token from localStorage, handles 401/403 via `handleAuthError`, returns a structured `PROFILE_MISSING` result for non-fatal profile errors, and exposes a subscription API to track global refresh state for UI overlays.",
+      "reqIds": [],
+      "version": 1
+    },
+    {
+      "id": "IF-23",
+      "title": "Session context helper utilities for local user context and auth error handling",
+      "synonyms": [
+        "ensureUserContext",
+        "local context hydration"
+      ],
+      "description": "`ensureUserContext.ts` implements local user-context hydration with fallbacks and a boolean validation helper intended to gate write operations, plus `handleAuthError()` to clear stored auth keys on true authentication failures.",
+      "reqIds": [],
+      "version": 1
+    },
+    {
+      "id": "IF-24",
+      "title": "ICP Motoko backend: role-based access control, user profiles, and domain entity storage",
+      "synonyms": [
+        "Motoko canister backend",
+        "AccessControl"
+      ],
+      "description": "`backend/main.mo` and `authorization/access-control.mo` implement user roles (#admin/#user/#guest), profile storage, and CRUD for equipment, assignments, issues, sessions, and activity logs with strict permission and ownership rules (e.g., non-admins can only check out to themselves and check in what is assigned to them). Includes current time query and an admin-only employee-id validation endpoint.",
+      "reqIds": [],
+      "version": 1
+    },
+    {
+      "id": "IF-25",
+      "title": "Backend blob-storage mixin for photo/document handling and garbage collection",
+      "synonyms": [
+        "Storage.mo",
+        "Mixin.mo"
+      ],
+      "description": "Blob storage modules provide gateway principal authorization updates, dead blob detection/pruning confirmation, certificate creation for uploads, and a cycles refill/top-up flow via a cashier canister principal.",
+      "reqIds": [],
+      "version": 1
+    },
+    {
+      "id": "IF-26",
+      "title": "Reconnecting overlay for session refresh feedback",
+      "synonyms": [
+        "reconnect spinner",
+        "session restore overlay"
+      ],
+      "description": "`ReconnectingOverlay` provides a non-intrusive full-screen overlay with spinner during refresh operations, supports user dismissal after a delay, and is wired in `App.tsx` to both AuthContext refresh state and `apiClient` refresh subscriptions.",
+      "reqIds": [],
+      "version": 1
+    },
+    {
+      "id": "IF-27",
+      "title": "Branded 404 / Not Found page",
+      "synonyms": [
+        "NotFound"
+      ],
+      "description": "`NotFound.tsx` renders a full-screen branded 404 screen with a return-home action and consistent Ramp Track styling.",
+      "reqIds": [],
+      "version": 1
+    },
+    {
+      "id": "IF-28",
+      "title": "Android APK build documentation for PWA-to-TWA workflows",
+      "synonyms": [
+        "PWABuilder guide",
+        "Bubblewrap instructions"
+      ],
+      "description": "Multiple docs (`APK_BUILD_INSTRUCTIONS.md`, `APK_QUICK_START.md`, `APK_DEPLOYMENT_GUIDE.md`, `ANDROID_APK_GUIDE.md`, `APK_DOWNLOAD_LINK.md`) describe deploying the PWA over HTTPS and generating/distributing an Android APK using PWABuilder or other tooling.",
+      "reqIds": [],
+      "version": 1
+    },
+    {
+      "id": "feature-modify-only-frontend-src-app-tsx-to-remove-all-dependencies-on-isauthready-and-any-forceready-usage-if-present-so-the-splash-screen-cannot-block-indefinitely-after-at-most-one-render-if-authentication-state-is-falsy-unknown-the-app-must-render-loginscreen-if-authentication-state-is-truthy-the-app-must-render-the-existing-signed-in-view-routing-roleselection-adminmenu-etc-using-the-current-routing-structure",
+      "title": "Modify ONLY `frontend/src/App.tsx` to remove all dependencies on `isAuthReady` (and any `forceReady` usage if present) so the splash screen cannot block indefinitely. After at most one render, if authentication state is falsy/unknown, the app must render `LoginScreen`; if authentication state is truthy, the app must render the existing signed-in view/routing (roleSelection/adminMenu/etc.) using the current routing structure.",
+      "reqIds": [
+        "REQ-1"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-modify-only-frontend-src-components-loginscreen-tsx-to-remove-all-usage-of-isauthready-so-the-login-screen-never-blocks-user-interaction-due-to-auth-readiness-specifically-1-stop-destructuring-isauthready-from-useauth-2-remove-all-isauthready-checks-guards-inside-manual-submit-camera-badge-scan-and-keyboard-wedge-scan-paths-3-remove-isauthready-from-all-disabled-props-so-inputs-buttons-are-disabled-only-when-isloading-is-true-4-remove-any-button-label-branching-that-shows-a-readiness-state-like-loading-based-on-isauthready-5-ensure-login-attempts-are-allowed-even-if-auth-readiness-is-unknown-6-do-not-add-any-new-state-effects-imports-or-dependencies-7-do-not-change-authcontext-or-app-tsx",
+      "title": "Modify ONLY `frontend/src/components/LoginScreen.tsx` to remove ALL usage of `isAuthReady` so the login screen never blocks user interaction due to auth readiness. Specifically: (1) stop destructuring `isAuthReady` from `useAuth()`; (2) remove all `!isAuthReady` checks/guards inside manual submit, camera badge scan, and keyboard-wedge scan paths; (3) remove `isAuthReady` from all `disabled` props so inputs/buttons are disabled ONLY when `isLoading` is true; (4) remove any button-label branching that shows a readiness state like \"Loading...\" based on `isAuthReady`; (5) ensure login attempts are allowed even if auth readiness is unknown; (6) do not add any new state, effects, imports, or dependencies; (7) do not change `AuthContext` or `App.tsx`.",
+      "reqIds": [
+        "REQ-2"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-modify-only-frontend-src-app-tsx-to-remove-all-stored-view-screen-selection-state-and-derive-the-rendered-screen-directly-from-useauth-auth-during-render-if-auth-is-falsy-render-loginscreen-if-auth-is-truthy-render-the-existing-signed-in-app-ui-manager-agent-routing-using-the-current-routing-structure-unless-a-change-is-required-to-compile",
+      "title": "Modify ONLY `frontend/src/App.tsx` to remove all stored “view/screen” selection state and derive the rendered screen directly from `useAuth().auth` during render. If `auth` is falsy, render `LoginScreen`. If `auth` is truthy, render the existing signed-in app UI (manager/agent routing) using the current routing structure unless a change is required to compile.",
+      "reqIds": [
+        "REQ-4"
+      ],
+      "version": 1
+    }
+  ],
+  "new_feature_requests": [
+    {
+      "id": "AR-1",
+      "summary": "Add pre-role Login screen (manual + badge scan) that sets currentUser with roles and gates access to Sign-On role selection",
+      "reqIds": [],
+      "status": "in_progress"
+    },
+    {
+      "id": "AR-2",
+      "summary": "Implement localStorage-backed Equipment Registry with Admin Manage Equipment screen (add/edit/status) and agent scan validation via findById",
+      "reqIds": [],
+      "status": "in_progress"
+    },
+    {
+      "id": "AR-3",
+      "summary": "Unify equipment scanning across agent flows to reuse the same working scanner component as login (live preview, cancel, success callbacks) and remove placeholder scan modals",
+      "reqIds": [],
+      "status": "in_progress"
+    },
+    {
+      "id": "AR-4",
+      "summary": "Extend scanner to support 1D badge barcodes (Code 39/128, UPC_A, EAN_13) plus PDF_417; numeric-only extraction; auto-login + role routing; beep/vibration feedback; torch toggle",
+      "reqIds": [],
+      "status": "in_progress"
+    },
+    {
+      "id": "AR-5",
+      "summary": "Add Management equipment list filters (status/operator/equipment) with clickable tiles and drill-down equipment detail view incl. last check-in/out and history",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-6",
+      "summary": "Add persistent scan/audit event log (localStorage) capturing equipmentId, action, user identity, timestamp, and location label; enable drill-down by user/equipment in Management",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-7",
+      "summary": "Add GPS capture on scan events + nearest-gate resolution using a static gates dataset as sole source of truth; agents see only gate label, managers can see raw GPS and in-app map",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-8",
+      "summary": "Add diagnostics overlay/panel (toggleable) to inspect auth/storage state and log lifecycle events for troubleshooting in deployed builds",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-9",
+      "summary": "Service worker update/stale-cache mitigation (skipWaiting/clientsClaim, network-first navigation, versioned cache) to prevent mixed-assets/auth regressions",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-10",
+      "summary": "Android hardware back-button handling for installed PWA (popstate guard) without breaking scanner screens",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-11",
+      "summary": "Restore image-based Role Selection buttons (Agent/Admin) using existing PNG assets with responsive sizing and updated footer branding text",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-12",
+      "summary": "Patch LoginScreen to remove all isAuthReady usage so login UI never blocks interaction; only disable inputs/buttons when isLoading is true; allow login attempts regardless of auth readiness",
+      "reqIds": [],
+      "status": "in_progress"
+    },
+    {
+      "id": "AR-13",
+      "summary": "Modify ONLY `frontend/src/main.tsx` by replacing its entire contents with the exact code provided by the user so that `<AuthProvider>` is mounted at the application root, wrapped inside the existing `<InternetIdentityProvider>` and `<QueryClientProvider>`, and preserving `React.StrictMode`.",
+      "reqIds": [
+        "REQ-3"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "AR-14",
+      "summary": "Modify ONLY frontend/src/App.tsx to remove stored view/screen state and derive rendered screen directly from useAuth().auth (auth falsy => LoginScreen; auth truthy => signed-in routing), with no splash/readiness gating or new view-selection state",
+      "reqIds": [],
+      "status": "pending"
+    }
+  ],
+  "gameProjectType": "none",
+  "projectName": "Ramp Track",
+  "clarification_mode": "instant",
+  "clarification_rounds": 0
+}

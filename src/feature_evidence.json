@@ -1,0 +1,27 @@
+{
+  "kind": "feature_evidence_report",
+  "features": [
+    {
+      "featureId": "feature-modify-only-frontend-src-app-tsx-to-remove-all-stored-view-screen-selection-state-and-derive-the-rendered-screen-directly-from-useauth-auth-during-render-if-auth-is-falsy-render-loginscreen-if-auth-is-truthy-render-the-existing-signed-in-app-ui-manager-agent-routing-using-the-current-routing-structure-unless-a-change-is-required-to-compile",
+      "featureTitle": "Modify ONLY `frontend/src/App.tsx` to remove all stored “view/screen” selection state and derive the rendered screen directly from `useAuth().auth` during render. If `auth` is falsy, render `LoginScreen`. If `auth` is truthy, render the existing signed-in app UI (manager/agent routing) using the current routing structure unless a change is required to compile.",
+      "files": [
+        "frontend/src/App.tsx"
+      ],
+      "components": [
+        "authorization@3.0.0",
+        "blob-storage@3.0.0",
+        "camera@1.0.0",
+        "qr-code@1.0.0",
+        "core-infrastructure@1.0.2",
+        "shadcn-ui@1.0.0",
+        "build-template-react@1.0.0",
+        "initial-app@1.0.0",
+        "github-export-icp-cli@1.0.0"
+      ],
+      "testIds": [
+        "REQ-4"
+      ],
+      "confidence": "high"
+    }
+  ]
+}

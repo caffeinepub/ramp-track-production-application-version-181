@@ -1,0 +1,26 @@
+{
+  "kind": "implementation_plan",
+  "version": "1.0",
+  "title": "App.tsx: Render login vs signed-in UI directly from auth (remove stored view state)",
+  "requirements": [
+    {
+      "id": "REQ-4",
+      "summary": "Update App.tsx to render LoginScreen when unauthenticated and the existing signed-in app UI when authenticated, removing all stored view/screen state and any splash/readiness/timeout gating.",
+      "acceptanceCriteria": [
+        "`frontend/src/App.tsx` no longer uses `useState` (or any other stored state) to track the current screen/view (e.g., no `view`/`setView` pattern for navigation).",
+        "The top-level render decision is made directly from `useAuth().auth` during render: falsy auth => `LoginScreen`; truthy auth => existing signed-in routing/UI.",
+        "No splash-screen gating remains in `App.tsx` (e.g., no rendering `SplashScreen` and no effects that delay/timeout transition to login).",
+        "No gating on readiness flags/timeouts remains in `App.tsx` (e.g., no `isAuthReady` checks; no timer-driven UI transitions that control which screen is shown).",
+        "`AuthContext` is not modified.",
+        "The app compiles successfully with only the change to `frontend/src/App.tsx`."
+      ],
+      "file_operations": [
+        {
+          "path": "frontend/src/App.tsx",
+          "operation": "modify",
+          "description": "Remove the stored `view`/`setView` screen-selection state and any splash/readiness/timeout-driven screen transitions; during render, branch directly on `useAuth().auth` (falsy => render `LoginScreen`, truthy => render the existing signed-in manager/agent UI using the current routing structure unless minor adjustments are required to compile)."
+        }
+      ]
+    }
+  ]
+}

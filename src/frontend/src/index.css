@@ -1,0 +1,128 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+    :root {
+        --radius: 0.75rem;
+        
+        /* Light mode - Aviation/Industrial theme with vibrant blues and oranges */
+        --background: 0.98 0 0;
+        --foreground: 0.15 0 0;
+        --card: 1 0 0;
+        --card-foreground: 0.15 0 0;
+        --popover: 1 0 0;
+        --popover-foreground: 0.15 0 0;
+        
+        /* Primary: Deep aviation blue */
+        --primary: 0.45 0.15 250;
+        --primary-foreground: 0.98 0 0;
+        
+        /* Secondary: Light gray-blue */
+        --secondary: 0.92 0.02 240;
+        --secondary-foreground: 0.25 0 0;
+        
+        /* Muted: Soft gray */
+        --muted: 0.94 0.01 240;
+        --muted-foreground: 0.50 0.02 240;
+        
+        /* Accent: Vibrant safety orange */
+        --accent: 0.65 0.20 45;
+        --accent-foreground: 0.98 0 0;
+        
+        /* Destructive: Alert red */
+        --destructive: 0.55 0.22 25;
+        --destructive-foreground: 0.98 0 0;
+        
+        --border: 0.88 0.01 240;
+        --input: 0.88 0.01 240;
+        --ring: 0.45 0.15 250;
+        
+        /* Chart colors */
+        --chart-1: 0.60 0.18 250;
+        --chart-2: 0.65 0.20 45;
+        --chart-3: 0.55 0.18 150;
+        --chart-4: 0.70 0.15 30;
+        --chart-5: 0.50 0.20 280;
+        
+        /* Sidebar */
+        --sidebar: 0.98 0 0;
+        --sidebar-foreground: 0.15 0 0;
+        --sidebar-primary: 0.45 0.15 250;
+        --sidebar-primary-foreground: 0.98 0 0;
+        --sidebar-accent: 0.92 0.02 240;
+        --sidebar-accent-foreground: 0.25 0 0;
+        --sidebar-border: 0.88 0.01 240;
+        --sidebar-ring: 0.45 0.15 250;
+    }
+
+    .dark {
+        /* Dark mode - High contrast for outdoor visibility */
+        --background: 0.15 0 0;
+        --foreground: 0.95 0 0;
+        --card: 0.20 0 0;
+        --card-foreground: 0.95 0 0;
+        --popover: 0.18 0 0;
+        --popover-foreground: 0.95 0 0;
+        
+        /* Primary: Bright blue for visibility */
+        --primary: 0.65 0.20 250;
+        --primary-foreground: 0.10 0 0;
+        
+        /* Secondary: Medium gray */
+        --secondary: 0.30 0.02 240;
+        --secondary-foreground: 0.95 0 0;
+        
+        /* Muted: Dark gray */
+        --muted: 0.25 0.02 240;
+        --muted-foreground: 0.65 0.02 240;
+        
+        /* Accent: Bright orange */
+        --accent: 0.70 0.22 45;
+        --accent-foreground: 0.10 0 0;
+        
+        /* Destructive: Bright red */
+        --destructive: 0.60 0.24 25;
+        --destructive-foreground: 0.10 0 0;
+        
+        --border: 0.30 0.02 240;
+        --input: 0.30 0.02 240;
+        --ring: 0.65 0.20 250;
+        
+        /* Chart colors - brighter for dark mode */
+        --chart-1: 0.65 0.20 250;
+        --chart-2: 0.70 0.22 45;
+        --chart-3: 0.60 0.20 150;
+        --chart-4: 0.75 0.18 30;
+        --chart-5: 0.55 0.22 280;
+        
+        /* Sidebar */
+        --sidebar: 0.18 0 0;
+        --sidebar-foreground: 0.95 0 0;
+        --sidebar-primary: 0.65 0.20 250;
+        --sidebar-primary-foreground: 0.10 0 0;
+        --sidebar-accent: 0.25 0.02 240;
+        --sidebar-accent-foreground: 0.95 0 0;
+        --sidebar-border: 0.30 0.02 240;
+        --sidebar-ring: 0.65 0.20 250;
+    }
+
+    * {
+        @apply border-border;
+    }
+    
+    body {
+        @apply bg-background text-foreground;
+        font-feature-settings: "rlig" 1, "calt" 1;
+    }
+    
+    /* Touch-optimized styles for ruggedized devices */
+    button, a, [role="button"] {
+        @apply touch-manipulation;
+    }
+    
+    /* Larger tap targets for gloved hands */
+    input, select, textarea, button {
+        min-height: 44px;
+    }
+}

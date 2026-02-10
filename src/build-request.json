@@ -1,0 +1,58 @@
+{
+  "kind": "build_request",
+  "title": "App.tsx: Derive rendered screen directly from auth (remove stored view state)",
+  "priority": "high",
+  "requirements": [
+    {
+      "id": "REQ-4",
+      "text": "Modify ONLY `frontend/src/App.tsx` to remove all stored “view/screen” selection state and derive the rendered screen directly from `useAuth().auth` during render. If `auth` is falsy, render `LoginScreen`. If `auth` is truthy, render the existing signed-in app UI (manager/agent routing) using the current routing structure unless a change is required to compile.",
+      "target": "frontend",
+      "source": {
+        "messageIds": [
+          "msg-1"
+        ],
+        "quotes": [
+          "Modify ONLY: frontend/src/App.tsx\nGoal: Remove all stored “view” or “screen” state. The rendered screen MUST be derived directly from useAuth().auth during render.\nRules:\nDo NOT introduce new state for view selection\nDo NOT gate on splash, readiness flags, or timeouts\nIf auth is falsy → render LoginScreen\nIf auth is truthy → render the signed-in app (manager/agent router)\nDo NOT change routing structure unless required to compile\nDo NOT modify AuthContext"
+        ]
+      },
+      "acceptanceCriteria": [
+        "`frontend/src/App.tsx` no longer uses `useState` (or any other stored state) to track the current screen/view (e.g., no `view`/`setView` pattern for navigation).",
+        "The top-level render decision is made directly from `useAuth().auth` during render: falsy auth => `LoginScreen`; truthy auth => existing signed-in routing/UI.",
+        "No splash-screen gating remains in `App.tsx` (e.g., no rendering `SplashScreen` and no effects that delay/timeout transition to login).",
+        "No gating on readiness flags/timeouts remains in `App.tsx` (e.g., no `isAuthReady` checks; no timer-driven UI transitions that control which screen is shown).",
+        "`AuthContext` is not modified.",
+        "The app compiles successfully with only the change to `frontend/src/App.tsx`."
+      ]
+    }
+  ],
+  "constraints": [
+    "Minimal patch only.",
+    "Do NOT rebuild from scratch.",
+    "Do NOT migrate.",
+    "Modify ONLY `frontend/src/App.tsx`.",
+    "Do NOT introduce new state for view selection.",
+    "Do NOT gate on splash, readiness flags, or timeouts.",
+    "Do NOT modify `AuthContext`.",
+    "Use English for any user-facing text in the build request."
+  ],
+  "nonGoals": [
+    "Any changes to `frontend/src/contexts/AuthContext.tsx`.",
+    "Any changes to `frontend/src/components/LoginScreen.tsx` or other components/pages.",
+    "Backend changes or Motoko state/schema migrations.",
+    "Redesigning or adding new routes/screens beyond what is required to compile."
+  ],
+  "imageRequirements": {
+    "required": [],
+    "edits": []
+  },
+  "userProfileUpdate": {
+    "goalsToAdd": [],
+    "goalsToRemove": [],
+    "preferencesToAdd": [],
+    "preferencesToRemove": [],
+    "miscToAdd": [],
+    "miscToRemove": [],
+    "fieldsToSet": {},
+    "fieldsToDelete": []
+  }
+}
