@@ -1,47 +1,29 @@
 {
   "kind": "spec_vs_diff_report",
   "version": "1.0",
-  "generatedAt": "2026-02-10T18:33:54.817Z",
-  "summary": "REQ-4 is not satisfied. `frontend/src/App.tsx` still uses stored view state (`subView`) and includes timeout-based UI gating logic. Additionally, the diff modifies files other than `frontend/src/App.tsx`, violating the “modify ONLY App.tsx” constraint.",
+  "generatedAt": "2026-02-14T07:35:02.198Z",
+  "summary": "App.tsx now derives the logged-out vs signed-in render directly from `auth` and preserves the reconnecting overlay across both states, but it still uses stored view state (`currentView` via `useState`) and a `switch(currentView)` to control navigation, which conflicts with REQ-10’s acceptance criteria. Additionally, files other than `frontend/src/App.tsx` were modified despite the constraint to modify only App.tsx.",
   "missing_requirements": [
     {
-      "id": "REQ-4",
-      "requirement": "Modify ONLY `frontend/src/App.tsx` to remove all stored “view/screen” selection state and derive the rendered screen directly from `useAuth().auth` during render (falsy auth => `LoginScreen`, truthy auth => existing signed-in routing/UI), with no splash/readiness/timeout gating.",
-      "reason": "`App.tsx` still stores and switches on a view state (`subView` via `useState`), and it contains timeout-driven gating logic for an overlay. The diff also modifies files beyond `App.tsx`.",
+      "id": "REQ-10",
+      "requirement": "Remove stored screen-selection React state (the `subView` `useState` and `setSubView`-driven switch) and replace it with a non-stale navigation mechanism, with no `useState`-backed view/screen state or `switch(subView)`-equivalent controlling navigation.",
+      "reason": "The diff shows `currentView` being stored in React state via `useState` and a `switch (currentView)` used to select which screen to render, which is equivalent to stored view/screen state driving navigation.",
       "evidence": [
-        "frontend/src/App.tsx: `import { useState, useEffect } from 'react';`",
-        "frontend/src/App.tsx: `const [subView, setSubView] = useState<...>('roleSelection');`",
-        "frontend/src/App.tsx: `switch (subView) { ... }` with multiple `setSubView(...)` navigation callbacks",
-        "frontend/src/App.tsx: `useEffect(() => { ... const timer = setTimeout(() => { ... }, 10000); ... }, [isRefreshing, apiClientRefreshing]);` (timeout-based gating)",
-        "frontend-file-summaries.txt (modified)",
-        "project_state.json (modified)"
+        "frontend/src/App.tsx"
       ]
     }
   ],
   "hallucinated_features": [
     {
-      "description": "Introduced/expanded reconnecting overlay behavior with dismiss + auto-dismiss timeout and an external refresh-state subscription mechanism.",
-      "reason": "The BuildRequest only asks to derive the rendered screen from `auth` and remove view/splash/readiness/timeout gating; it does not request adding overlay dismissal state, 10s timeout behavior, or `subscribeToRefreshState` integration.",
+      "description": "Modified files beyond the allowed scope (constraint: modify ONLY `frontend/src/App.tsx`).",
+      "reason": "The diff summary lists additional modified files (`frontend-file-summaries.txt` and `project_state.json`) that were not requested and violate the stated constraint.",
       "evidence": [
-        "frontend/src/App.tsx: `import ReconnectingOverlay ...`",
-        "frontend/src/App.tsx: `import { subscribeToRefreshState } from './lib/apiClient';`",
-        "frontend/src/App.tsx: `const [apiClientRefreshing, setApiClientRefreshing] = useState(false);`",
-        "frontend/src/App.tsx: `const [overlayDismissed, setOverlayDismissed] = useState(false);`",
-        "frontend/src/App.tsx: `useEffect(() => { const unsubscribe = subscribeToRefreshState(...) ... }, []);`",
-        "frontend/src/App.tsx: `setTimeout(..., 10000)` auto-dismiss logic",
-        "frontend/src/App.tsx: `handleOverlayDismiss` and `showReconnectingOverlay` logic"
-      ]
-    },
-    {
-      "description": "Added/kept internal sub-navigation state machine (`subView`) for signed-in routing (roleSelection/signOn/agentMenu/adminMenu/etc.).",
-      "reason": "REQ-4 explicitly requires removing all stored view/screen selection state and deriving the rendered screen directly from `useAuth().auth` during render; implementing/retaining `subView` conflicts with that request.",
-      "evidence": [
-        "frontend/src/App.tsx: `const [subView, setSubView] = useState<...>('roleSelection');`",
-        "frontend/src/App.tsx: `switch (subView)` and callbacks `onContinueAsAgent={() => setSubView('agentMenu')}`, etc."
+        "frontend-file-summaries.txt",
+        "project_state.json"
       ]
     }
   ],
-  "confidence": 0.86,
+  "confidence": 0.74,
   "changed_files": [
     "frontend-file-summaries.txt",
     "frontend/src/App.tsx",

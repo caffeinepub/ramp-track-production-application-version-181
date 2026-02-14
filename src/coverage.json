@@ -1,18 +1,42 @@
 {
   "kind": "coverage_report",
   "version": "1.0",
-  "generatedAt": "2026-02-10T18:33:54.820Z",
+  "generatedAt": "2026-02-14T07:35:02.202Z",
   "sources": {
     "buildRequest": true,
     "implementationPlan": true
   },
   "requirements": {
-    "total": 1,
-    "implemented": 1,
+    "total": 3,
+    "implemented": 3,
     "items": [
       {
-        "id": "REQ-4",
-        "summary": "Modify ONLY `frontend/src/App.tsx` to remove all stored “view/screen” selection state and derive the rendered screen directly from `useAuth().auth` during render. If `auth` is falsy, render `LoginScreen`. If `auth` is truthy, render the existing signed-in app UI (manager/agent routing) using the current routing structure unless a change is required to compile.",
+        "id": "REQ-10",
+        "summary": "Refactor `frontend/src/App.tsx` to remove the stored screen-selection React state (the `subView` `useState` and `setSubView`-driven switch) and replace it with a non-stale navigation mechanism that still preserves the existing screens and back/continue behaviors (RoleSelectionScreen, SignOnScreen, OperatorHomeScreen, AdminDashboard, CheckOutScreen, CheckInScreen, ReportIssueScreen, ManageEquipmentScreen).",
+        "status": "implemented",
+        "plannedFiles": [
+          "frontend/src/App.tsx",
+          "frontend/src/App.tsx"
+        ],
+        "matchedFiles": [
+          "frontend/src/App.tsx",
+          "frontend/src/App.tsx"
+        ]
+      },
+      {
+        "id": "REQ-11",
+        "summary": "Preserve the reconnecting/refresh overlay behavior in `frontend/src/App.tsx` (including `subscribeToRefreshState`, timeout-based auto-dismiss, and user dismiss), ensuring it works both on the logged-out (`LoginScreen`) view and throughout the signed-in UI.",
+        "status": "implemented",
+        "plannedFiles": [
+          "frontend/src/App.tsx"
+        ],
+        "matchedFiles": [
+          "frontend/src/App.tsx"
+        ]
+      },
+      {
+        "id": "REQ-9",
+        "summary": "Update `frontend/src/App.tsx` so the rendered UI is derived directly from `useAuth().auth` during render (no auth-readiness gating), and so the app reliably transitions away from `LoginScreen` as soon as `auth` becomes truthy.",
         "status": "implemented",
         "plannedFiles": [
           "frontend/src/App.tsx"
@@ -25,7 +49,6 @@
   },
   "changedFiles": [
     "build-request.json",
-    "caffeine.lock.json",
     "feature_evidence.json",
     "frontend-file-summaries.txt",
     "frontend-implementation-plan.json",

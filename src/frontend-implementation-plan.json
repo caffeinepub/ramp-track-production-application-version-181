@@ -1,24 +1,59 @@
 {
   "kind": "implementation_plan",
   "version": "1.0",
-  "title": "App.tsx: Render login vs signed-in UI directly from auth (remove stored view state)",
+  "title": "Fix App.tsx auth-driven rendering and replace stale subView state with hash-based navigation",
   "requirements": [
     {
-      "id": "REQ-4",
-      "summary": "Update App.tsx to render LoginScreen when unauthenticated and the existing signed-in app UI when authenticated, removing all stored view/screen state and any splash/readiness/timeout gating.",
+      "id": "REQ-9",
+      "summary": "Render LoginScreen vs signed-in UI purely based on useAuth().auth during render so the app transitions immediately after successful login.",
       "acceptanceCriteria": [
-        "`frontend/src/App.tsx` no longer uses `useState` (or any other stored state) to track the current screen/view (e.g., no `view`/`setView` pattern for navigation).",
-        "The top-level render decision is made directly from `useAuth().auth` during render: falsy auth => `LoginScreen`; truthy auth => existing signed-in routing/UI.",
-        "No splash-screen gating remains in `App.tsx` (e.g., no rendering `SplashScreen` and no effects that delay/timeout transition to login).",
-        "No gating on readiness flags/timeouts remains in `App.tsx` (e.g., no `isAuthReady` checks; no timer-driven UI transitions that control which screen is shown).",
-        "`AuthContext` is not modified.",
-        "The app compiles successfully with only the change to `frontend/src/App.tsx`."
+        "When `auth` is falsy, `App` renders `LoginScreen` (and does not render any signed-in screens).",
+        "When `auth` becomes truthy (e.g., after a successful login), `App` renders the signed-in UI (RoleSelection/agent/admin flows) without requiring a page reload.",
+        "No code path in `App.tsx` depends on `isAuthReady` or any other readiness flag to decide whether to show `LoginScreen` vs signed-in UI.",
+        "`LoginScreen` is not blocked by any `App.tsx` splash/readiness gating; the decision is based on `auth` only."
       ],
       "file_operations": [
         {
           "path": "frontend/src/App.tsx",
           "operation": "modify",
-          "description": "Remove the stored `view`/`setView` screen-selection state and any splash/readiness/timeout-driven screen transitions; during render, branch directly on `useAuth().auth` (falsy => render `LoginScreen`, truthy => render the existing signed-in manager/agent UI using the current routing structure unless minor adjustments are required to compile)."
+          "description": "Refactor the top-level render decision to derive UI directly from `useAuth().auth` on every render (no readiness/splash gating and no reliance on `onLogin` callbacks), ensuring React re-renders immediately to the signed-in UI once `auth` becomes truthy."
+        }
+      ]
+    },
+    {
+      "id": "REQ-10",
+      "summary": "Remove subView useState/switch navigation and replace it with a non-stale navigation mechanism that preserves existing screens and back/continue behaviors.",
+      "acceptanceCriteria": [
+        "`frontend/src/App.tsx` no longer declares `subView` via `useState` and no longer uses a `switch(subView)` (or equivalent stored view/screen state) to control navigation.",
+        "The signed-in flows remain reachable and functional via the existing UI controls (continue/back buttons) and render the same screen components as before.",
+        "Refreshing the page while authenticated does not trap the user on `LoginScreen`; the app renders the signed-in UI based on `auth`."
+      ],
+      "file_operations": [
+        {
+          "path": "frontend/src/App.tsx",
+          "operation": "modify",
+          "description": "Replace `subView` state + `setSubView`-driven switch with URL-hash-derived navigation (e.g., compute current view from `window.location.hash` during render and subscribe to `hashchange`), and wire all existing screen transitions (continue/back) to update the hash so navigation does not depend on stored React screen-selection state."
+        },
+        {
+          "path": "frontend/src/App.tsx",
+          "operation": "modify",
+          "description": "Ensure the signed-in default view is stable (e.g., role selection) when authenticated and hash is empty/invalid, and ensure logged-out rendering always shows `LoginScreen` regardless of hash while keeping signed-in routes available immediately upon auth becoming truthy."
+        }
+      ]
+    },
+    {
+      "id": "REQ-11",
+      "summary": "Preserve reconnecting/refresh overlay behavior across logged-out and signed-in views, including subscription, auto-dismiss, and manual dismissal.",
+      "acceptanceCriteria": [
+        "`ReconnectingOverlay` still appears when `isRefreshing` (from `useAuth`) or the apiClient refresh subscription indicates refreshing, unless dismissed.",
+        "The overlay still supports manual dismissal and auto-dismiss after the existing timeout window.",
+        "The overlay can display on top of both the logged-out and signed-in app UI without breaking navigation."
+      ],
+      "file_operations": [
+        {
+          "path": "frontend/src/App.tsx",
+          "operation": "modify",
+          "description": "Keep `subscribeToRefreshState` subscription, overlay dismissed state, and timeout-based auto-dismiss logic intact while restructuring App rendering/navigation, and ensure `ReconnectingOverlay` remains mounted above both the logged-out (`LoginScreen`) and signed-in UI trees."
         }
       ]
     }

@@ -1,6 +1,6 @@
 {
   "schemaVersion": "1.0.0",
-  "projectStateVersion": 12,
+  "projectStateVersion": 22,
   "summary": "Ramp Track now includes expanded UX and admin/operator capabilities beyond the original operator-only scope: (1) a dedicated pre-role Login screen (manual + badge scan) that sets a current user with roles and gates access to role selection; (2) a localStorage-backed Equipment Registry managed from an Admin “Manage Equipment” screen and enforced by agent scan flows (unknown equipment blocked); (3) unified, shared camera scanner UI used by both login and equipment flows, with added scan guide line and later extended barcode format support (incl. 1D formats + PDF_417) plus optional torch/beep/vibration requirements; (4) management dashboards with filtering, drill-down details, and planned scan/audit history by user/equipment with GPS-derived gate labeling. The project also entered a stabilization phase focused on startup/auth hydration (AuthProvider mounting, session persistence keys, isAuthReady deadlocks), service worker stale-cache mitigation, and deployment/publish/credit issues within the hosting platform.",
   "architectural_notes": [
     "Frontend is a React + TypeScript SPA built with Vite and Tailwind; view routing is handled by an internal `view` state + switch statement (no React Router).",
@@ -15,7 +15,6 @@
     "UX recovery patterns include a SplashScreen gate (until auth hydration completes), a ReconnectingOverlay (tied to refresh state), and an ErrorBoundary that can clear cache/service workers and reload."
   ],
   "known_issues": [
-    "Critical: `frontend/src/main.tsx` does not wrap `<App />` with the `AuthProvider` from `frontend/src/contexts/AuthContext.tsx`, yet most pages call `useAuth()`. This likely leaves the app using the context’s default placeholder values (auth never set, login functions no-op).",
     "Auth/session storage key mismatch across modules: `AuthContext` uses `ramptrack_v2_session`, while `ensureUserContext.getLocalUserContext()` reads `ramptrack_auth_state`/`currentUser`, `apiClient` uses `ramptrack_auth_token`, and `handleAuthError()` clears different keys. This can cause validation, logout, and refresh behaviors to be inconsistent.",
     "`ensureUserContext()` currently performs only local checks and never validates the ICP backend session/identity; however it is used as a guard before write mutations, giving a false sense of backend-auth validation.",
     "Frontend login is roster-based with credentials embedded client-side (`USER_ROSTER` includes passwords). This is not secure for production and is suitable only for demos/prototypes.",
@@ -24,7 +23,8 @@
     "Equipment event history (`lib/equipmentHistory.ts`) is in-memory only and is lost on page reload; audit log is persisted but event history is not.",
     "Some referenced components/pages are empty stubs in the provided snapshot (`PWAUpdateNotification.tsx`, `OfflineIndicator.tsx`, `AuthDiagnosticsPanel.tsx`, `DemoLoginHandler.tsx`, `ProfileSetupScreen.tsx`, `RampControl.tsx`), indicating incomplete/placeholder functionality.",
     "Historical incident report indicates unresolved scanner flicker and ICP deployment asset/MIME/service-worker conflicts; the service worker contains bypass logic for bundles, but production issues may persist depending on hosting/caching behavior.",
-    "App.tsx appears to use stored view/screen state (not derived directly from AuthContext auth during render), which can prevent the UI from transitioning after login if the view state is not recomputed when auth becomes non-null."
+    "App.tsx appears to use stored view/screen state (not derived directly from AuthContext auth during render), which can prevent the UI from transitioning after login if the view state is not recomputed when auth becomes non-null.",
+    "`frontend/src/main.tsx` is currently rendering an empty `<React.StrictMode>` tree (no children), so `<App />` and providers (React Query, Internet Identity, AuthProvider) never mount, resulting in a blank/non-functional app."
   ],
   "isFixRequest": true,
   "existing_features": [
@@ -360,6 +360,30 @@
         "REQ-4"
       ],
       "version": 1
+    },
+    {
+      "id": "feature-update-frontend-src-app-tsx-so-the-rendered-ui-is-derived-directly-from-useauth-auth-during-render-no-auth-readiness-gating-and-so-the-app-reliably-transitions-away-from-loginscreen-as-soon-as-auth-becomes-truthy",
+      "title": "Update `frontend/src/App.tsx` so the rendered UI is derived directly from `useAuth().auth` during render (no auth-readiness gating), and so the app reliably transitions away from `LoginScreen` as soon as `auth` becomes truthy.",
+      "reqIds": [
+        "REQ-9"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-refactor-frontend-src-app-tsx-to-remove-the-stored-screen-selection-react-state-the-subview-usestate-and-setsubview-driven-switch-and-replace-it-with-a-non-stale-navigation-mechanism-that-still-preserves-the-existing-screens-and-back-continue-behaviors-roleselectionscreen-signonscreen-operatorhomescreen-admindashboard-checkoutscreen-checkinscreen-reportissuescreen-manageequipmentscreen",
+      "title": "Refactor `frontend/src/App.tsx` to remove the stored screen-selection React state (the `subView` `useState` and `setSubView`-driven switch) and replace it with a non-stale navigation mechanism that still preserves the existing screens and back/continue behaviors (RoleSelectionScreen, SignOnScreen, OperatorHomeScreen, AdminDashboard, CheckOutScreen, CheckInScreen, ReportIssueScreen, ManageEquipmentScreen).",
+      "reqIds": [
+        "REQ-10"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-preserve-the-reconnecting-refresh-overlay-behavior-in-frontend-src-app-tsx-including-subscribetorefreshstate-timeout-based-auto-dismiss-and-user-dismiss-ensuring-it-works-both-on-the-logged-out-loginscreen-view-and-throughout-the-signed-in-ui",
+      "title": "Preserve the reconnecting/refresh overlay behavior in `frontend/src/App.tsx` (including `subscribeToRefreshState`, timeout-based auto-dismiss, and user dismiss), ensuring it works both on the logged-out (`LoginScreen`) view and throughout the signed-in UI.",
+      "reqIds": [
+        "REQ-11"
+      ],
+      "version": 1
     }
   ],
   "new_feature_requests": [
@@ -447,6 +471,38 @@
       "id": "AR-14",
       "summary": "Modify ONLY frontend/src/App.tsx to remove stored view/screen state and derive rendered screen directly from useAuth().auth (auth falsy => LoginScreen; auth truthy => signed-in routing), with no splash/readiness gating or new view-selection state",
       "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-15",
+      "summary": "Modify ONLY `frontend/src/main.tsx` to ensure the React root renders `<App />` wrapped in `<AuthProvider>` from `./contexts/AuthContext`, while preserving any existing providers already present (e.g., React Query and Internet Identity).",
+      "reqIds": [
+        "REQ-5"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "AR-16",
+      "summary": "Modify ONLY `frontend/src/main.tsx` to ensure the application is wrapped with `AuthProvider` from `./contexts/AuthContext`, so `AuthContext` is active for the entire app tree.",
+      "reqIds": [
+        "REQ-6"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "AR-17",
+      "summary": "Replace ONLY `frontend/src/main.tsx` by overwriting the entire file contents so that the React root mounts providers in this exact nesting order: `React.StrictMode` → `QueryClientProvider` → `InternetIdentityProvider` → `AuthProvider` → `App`, with imports exactly as provided by the user (including `React` import) and `queryClient` initialization unchanged in behavior.",
+      "reqIds": [
+        "REQ-7"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "AR-18",
+      "summary": "Modify ONLY `frontend/src/main.tsx` to render the React root as a non-empty `<React.StrictMode>` tree that mounts `<App />` wrapped with providers in this exact nesting order: `React.StrictMode` → `QueryClientProvider` (reusing the existing `queryClient`) → `InternetIdentityProvider` → `AuthProvider` → `App`. Ensure imports match exactly: import `React` from `react`, `AuthProvider` from `./contexts/AuthContext`, `InternetIdentityProvider` from `./hooks/useInternetIdentity`, and `App` from `./App`, and keep `./index.css` import. Overwrite the entire file contents to exactly match the user-provided code block.",
+      "reqIds": [
+        "REQ-8"
+      ],
       "status": "pending"
     }
   ],

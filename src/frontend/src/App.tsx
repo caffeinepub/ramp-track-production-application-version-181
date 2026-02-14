@@ -18,13 +18,26 @@ export interface CurrentUser {
   displayName?: string;
 }
 
+type ViewType = 'roleSelection' | 'signOn' | 'agentMenu' | 'adminMenu' | 'takeEquipment' | 'returnEquipment' | 'reportIssue' | 'manageEquipment';
+
+// Helper to get current view from hash
+function getViewFromHash(): ViewType {
+  const hash = window.location.hash.slice(1); // Remove '#'
+  const validViews: ViewType[] = ['roleSelection', 'signOn', 'agentMenu', 'adminMenu', 'takeEquipment', 'returnEquipment', 'reportIssue', 'manageEquipment'];
+  return validViews.includes(hash as ViewType) ? (hash as ViewType) : 'roleSelection';
+}
+
+// Helper to navigate to a view
+function navigateTo(view: ViewType) {
+  window.location.hash = view;
+}
+
 export default function App() {
-  const [subView, setSubView] = useState<'roleSelection' | 'signOn' | 'agentMenu' | 'adminMenu' | 'takeEquipment' | 'returnEquipment' | 'reportIssue' | 'manageEquipment'>('roleSelection');
-  
   const { auth, isRefreshing } = useAuth();
   
   const [apiClientRefreshing, setApiClientRefreshing] = useState(false);
   const [overlayDismissed, setOverlayDismissed] = useState(false);
+  const [currentView, setCurrentView] = useState<ViewType>(getViewFromHash());
 
   // Convert auth to CurrentUser format for backward compatibility with child components
   const legacyCurrentUser: CurrentUser | null = auth ? {
@@ -32,6 +45,15 @@ export default function App() {
     roles: [auth.role],
     displayName: auth.name,
   } : null;
+
+  // Subscribe to hash changes
+  useEffect(() => {
+    const handleHashChange = () => {
+      setCurrentView(getViewFromHash());
+    };
+    window.addEventListener('hashchange', handleHashChange);
+    return () => window.removeEventListener('hashchange', handleHashChange);
+  }, []);
 
   // Subscribe to apiClient refresh state
   useEffect(() => {
@@ -71,7 +93,7 @@ export default function App() {
   };
 
   // Render decision: derive directly from auth
-  console.log('[App] Rendering - auth:', auth ? `${auth.name} (${auth.role})` : 'none', 'subView:', subView);
+  console.log('[App] Rendering - auth:', auth ? `${auth.name} (${auth.role})` : 'none', 'currentView:', currentView);
 
   // If not authenticated, render LoginScreen
   if (!auth) {
@@ -86,16 +108,16 @@ export default function App() {
     );
   }
 
-  // Authenticated: render signed-in UI based on subView
+  // Authenticated: render signed-in UI based on currentView (derived from hash)
   let content;
-  switch (subView) {
+  switch (currentView) {
     case 'roleSelection':
       content = (
         <RoleSelectionScreen
           currentUser={legacyCurrentUser}
-          onContinueAsAgent={() => setSubView('agentMenu')}
-          onContinueToAdmin={() => setSubView('adminMenu')}
-          onBack={() => setSubView('roleSelection')}
+          onContinueAsAgent={() => navigateTo('agentMenu')}
+          onContinueToAdmin={() => navigateTo('adminMenu')}
+          onBack={() => navigateTo('roleSelection')}
         />
       );
       break;
@@ -104,9 +126,9 @@ export default function App() {
       content = (
         <SignOnScreen
           currentUser={legacyCurrentUser}
-          onAgentLogin={() => setSubView('agentMenu')}
-          onAdminLogin={() => setSubView('adminMenu')}
-          onBack={() => setSubView('roleSelection')}
+          onAgentLogin={() => navigateTo('agentMenu')}
+          onAdminLogin={() => navigateTo('adminMenu')}
+          onBack={() => navigateTo('roleSelection')}
         />
       );
       break;
@@ -114,14 +136,14 @@ export default function App() {
     case 'agentMenu':
       content = (
         <OperatorHomeScreen
-          onTakeEquipment={() => setSubView('takeEquipment')}
-          onReturnEquipment={() => setSubView('returnEquipment')}
-          onReportIssue={() => setSubView('reportIssue')}
+          onTakeEquipment={() => navigateTo('takeEquipment')}
+          onReturnEquipment={() => navigateTo('returnEquipment')}
+          onReportIssue={() => navigateTo('reportIssue')}
           onBack={() => {
             if (auth?.role === 'manager' || auth?.role === 'admin') {
-              setSubView('roleSelection');
+              navigateTo('roleSelection');
             } else {
-              setSubView('signOn');
+              navigateTo('signOn');
             }
           }}
         />
@@ -129,15 +151,15 @@ export default function App() {
       break;
 
     case 'takeEquipment':
-      content = <CheckOutScreen onBack={() => setSubView('agentMenu')} />;
+      content = <CheckOutScreen onBack={() => navigateTo('agentMenu')} />;
       break;
 
     case 'returnEquipment':
-      content = <CheckInScreen onBack={() => setSubView('agentMenu')} />;
+      content = <CheckInScreen onBack={() => navigateTo('agentMenu')} />;
       break;
 
     case 'reportIssue':
-      content = <ReportIssueScreen onBack={() => setSubView('agentMenu')} />;
+      content = <ReportIssueScreen onBack={() => navigateTo('agentMenu')} />;
       break;
 
     case 'adminMenu':
@@ -145,28 +167,28 @@ export default function App() {
         <AdminDashboard 
           onBack={() => {
             if (auth?.role === 'manager' || auth?.role === 'admin') {
-              setSubView('roleSelection');
+              navigateTo('roleSelection');
             } else {
-              setSubView('signOn');
+              navigateTo('signOn');
             }
           }}
-          onManageEquipment={() => setSubView('manageEquipment')}
+          onManageEquipment={() => navigateTo('manageEquipment')}
         />
       );
       break;
 
     case 'manageEquipment':
-      content = <ManageEquipmentScreen onBack={() => setSubView('adminMenu')} />;
+      content = <ManageEquipmentScreen onBack={() => navigateTo('adminMenu')} />;
       break;
 
     default:
-      console.warn('[App] Unexpected subView state:', subView);
+      console.warn('[App] Unexpected currentView state:', currentView);
       content = (
         <RoleSelectionScreen
           currentUser={legacyCurrentUser}
-          onContinueAsAgent={() => setSubView('agentMenu')}
-          onContinueToAdmin={() => setSubView('adminMenu')}
-          onBack={() => setSubView('roleSelection')}
+          onContinueAsAgent={() => navigateTo('agentMenu')}
+          onContinueToAdmin={() => navigateTo('adminMenu')}
+          onBack={() => navigateTo('roleSelection')}
         />
       );
       break;

@@ -1,12 +1,11 @@
 # Specification
 
 ## Summary
-**Goal:** Update `frontend/src/App.tsx` so the app’s rendered screen is derived directly from `useAuth().auth`, eliminating any stored view/screen state and removing splash/readiness gating.
+**Goal:** Fix `frontend/src/App.tsx` routing/render logic so the app reliably transitions from `LoginScreen` to the signed-in UI immediately after successful authentication, without requiring a reload.
 
 **Planned changes:**
-- Modify only `frontend/src/App.tsx` to remove any `useState` (or other stored state) used to track the current view/screen.
-- Render `LoginScreen` when `useAuth().auth` is falsy.
-- Render the existing signed-in app UI (current manager/agent routing structure) when `useAuth().auth` is truthy, changing routing only if required to compile.
-- Remove any splash screen rendering and any readiness/timeouts/effects that gate or delay which screen is shown.
+- Update `App.tsx` to derive the rendered UI directly from `useAuth().auth` during render, with no readiness/splash gating controlling whether `LoginScreen` vs signed-in UI is shown.
+- Refactor `App.tsx` to remove stored screen-selection state (`subView` + `switch(subView)`), replacing it with a non-stale navigation approach that preserves the existing screens and back/continue behaviors (RoleSelectionScreen, SignOnScreen, OperatorHomeScreen, AdminDashboard, CheckOutScreen, CheckInScreen, ReportIssueScreen, ManageEquipmentScreen).
+- Preserve and keep functional the existing reconnecting/refresh overlay behavior in `App.tsx` (refresh subscriptions, auto-dismiss timeout, and manual dismiss) across both logged-out and signed-in views.
 
-**User-visible outcome:** Users see the login screen when signed out and the existing signed-in app experience when signed in, without splash/readiness gating or stateful screen selection.
+**User-visible outcome:** After logging in, users are taken into the appropriate signed-in flow (role selection / agent / admin) immediately, and refresh/reconnecting status overlay continues to work throughout the app.
