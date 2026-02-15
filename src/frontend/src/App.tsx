@@ -55,6 +55,20 @@ export default function App() {
     return () => window.removeEventListener('hashchange', handleHashChange);
   }, []);
 
+  // Navigate to roleSelection when auth becomes truthy and hash is empty or invalid
+  useEffect(() => {
+    if (auth) {
+      const currentHash = window.location.hash.slice(1);
+      const validSignedInViews: ViewType[] = ['roleSelection', 'signOn', 'agentMenu', 'adminMenu', 'takeEquipment', 'returnEquipment', 'reportIssue', 'manageEquipment'];
+      
+      // If hash is empty or not a valid signed-in view, navigate to roleSelection
+      if (!currentHash || !validSignedInViews.includes(currentHash as ViewType)) {
+        console.log('[App] Auth became truthy with invalid/empty hash, navigating to roleSelection');
+        navigateTo('roleSelection');
+      }
+    }
+  }, [auth]);
+
   // Subscribe to apiClient refresh state
   useEffect(() => {
     const unsubscribe = subscribeToRefreshState((refreshing) => {

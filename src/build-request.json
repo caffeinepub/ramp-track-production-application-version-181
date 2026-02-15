@@ -1,81 +1,57 @@
 {
   "kind": "build_request",
-  "title": "Fix App.tsx routing so the app can transition beyond LoginScreen after successful auth",
+  "title": "Fix post-login navigation so the app reliably leaves the Login screen",
   "priority": "high",
   "requirements": [
     {
-      "id": "REQ-9",
-      "text": "Update `frontend/src/App.tsx` so the rendered UI is derived directly from `useAuth().auth` during render (no auth-readiness gating), and so the app reliably transitions away from `LoginScreen` as soon as `auth` becomes truthy.",
+      "id": "REQ-12",
+      "text": "Update `frontend/src/main.tsx` to mount `AuthProvider` from `./contexts/AuthContext` around the entire application so `useAuth()` can update `auth` and the UI can transition beyond `LoginScreen`. Preserve the existing `QueryClientProvider` and `InternetIdentityProvider` wrappers, and keep user-facing behavior unchanged aside from fixing the login flow.",
       "target": "frontend",
       "source": {
         "messageIds": [
-          "msg-5"
+          "recent-User-1"
         ],
         "quotes": [
-          "Still can't get beyond the login screen..",
-          "import { useState, useEffect } from 'react'; ... export default function App() { ... if (!auth) { return (<> <LoginScreen onLogin={() => {}} /> ..."
+          "Build it",
+          "Yes. Do whatever it takes to get beyond the login"
         ]
       },
       "acceptanceCriteria": [
-        "When `auth` is falsy, `App` renders `LoginScreen` (and does not render any signed-in screens).",
-        "When `auth` becomes truthy (e.g., after a successful login), `App` renders the signed-in UI (RoleSelection/agent/admin flows) without requiring a page reload.",
-        "No code path in `App.tsx` depends on `isAuthReady` or any other readiness flag to decide whether to show `LoginScreen` vs signed-in UI.",
-        "`LoginScreen` is not blocked by any `App.tsx` splash/readiness gating; the decision is based on `auth` only."
+        "`frontend/src/main.tsx` renders a non-empty React tree that includes `<App />` wrapped with `<AuthProvider>`.",
+        "After a successful login (manual, camera badge scan, or keyboard-wedge scan), `useAuth().auth` becomes truthy and `App.tsx` re-renders into the signed-in UI instead of remaining on `LoginScreen`.",
+        "No changes are made to any files under `frontend/src/hooks/useInternetIdentity.ts` / `useActor.ts` or `frontend/src/components/ui` (immutable paths)."
       ]
     },
     {
-      "id": "REQ-10",
-      "text": "Refactor `frontend/src/App.tsx` to remove the stored screen-selection React state (the `subView` `useState` and `setSubView`-driven switch) and replace it with a non-stale navigation mechanism that still preserves the existing screens and back/continue behaviors (RoleSelectionScreen, SignOnScreen, OperatorHomeScreen, AdminDashboard, CheckOutScreen, CheckInScreen, ReportIssueScreen, ManageEquipmentScreen).",
+      "id": "REQ-13",
+      "text": "Update `frontend/src/App.tsx` so that when `auth` becomes truthy, the app automatically navigates to a valid signed-in route (defaulting to `roleSelection`) if the current URL hash is empty or invalid, ensuring the app cannot remain on the logged-out `LoginScreen` after a successful login. Keep the existing hash-based routing structure and preserve the reconnecting/refresh overlay behavior.",
       "target": "frontend",
       "source": {
         "messageIds": [
-          "msg-5"
+          "recent-User-1"
         ],
         "quotes": [
-          "We need to apply **REQ‑4**, which removes *all* stored view state and makes the screen selection purely: if `auth` is falsy → show LoginScreen; if `auth` is truthy → show the role-selection / agent or admin UI",
-          "const [subView, setSubView] = useState<...>('roleSelection');",
-          "switch (subView) { ... }"
+          "It still doesn't go beyond the login screen. Why? Thought you fixed it",
+          "Yes. Do whatever it takes to get beyond the login"
         ]
       },
       "acceptanceCriteria": [
-        "`frontend/src/App.tsx` no longer declares `subView` via `useState` and no longer uses a `switch(subView)` (or equivalent stored view/screen state) to control navigation.",
-        "The signed-in flows remain reachable and functional via the existing UI controls (continue/back buttons) and render the same screen components as before.",
-        "Refreshing the page while authenticated does not trap the user on `LoginScreen`; the app renders the signed-in UI based on `auth`."
-      ]
-    },
-    {
-      "id": "REQ-11",
-      "text": "Preserve the reconnecting/refresh overlay behavior in `frontend/src/App.tsx` (including `subscribeToRefreshState`, timeout-based auto-dismiss, and user dismiss), ensuring it works both on the logged-out (`LoginScreen`) view and throughout the signed-in UI.",
-      "target": "frontend",
-      "source": {
-        "messageIds": [
-          "msg-5"
-        ],
-        "quotes": [
-          "import ReconnectingOverlay from './components/ReconnectingOverlay';",
-          "import { subscribeToRefreshState } from './lib/apiClient';",
-          "const showReconnectingOverlay = (isRefreshing || apiClientRefreshing) && !overlayDismissed;"
-        ]
-      },
-      "acceptanceCriteria": [
-        "`ReconnectingOverlay` still appears when `isRefreshing` (from `useAuth`) or the apiClient refresh subscription indicates refreshing, unless dismissed.",
-        "The overlay still supports manual dismissal and auto-dismiss after the existing timeout window.",
-        "The overlay can display on top of both the logged-out and signed-in app UI without breaking navigation."
+        "When `auth` transitions from falsy to truthy, the app renders the signed-in flow and sets `window.location.hash` to a valid view (at minimum `#roleSelection`) if none is present.",
+        "If the URL hash is already a valid signed-in view, the app does not override it on auth changes.",
+        "The reconnecting/refresh overlay continues to work on both logged-out (`LoginScreen`) and signed-in screens (including subscribe-to-refresh-state behavior, auto-dismiss timeout, and user dismiss)."
       ]
     }
   ],
   "constraints": [
-    "Modify ONLY `frontend/src/App.tsx`.",
     "Use English for any user-facing text.",
-    "Do not edit any files under `frontend/src/components/ui` (read-only).",
-    "Do not change `AuthContext` behavior or storage keys in this change set.",
-    "Do not add new backend features or require a Motoko migration."
+    "Frontend immutable paths must not be edited: `frontend/src/hooks/useInternetIdentity.ts`, `frontend/src/hooks/useActor.ts`, `frontend/src/main.tsx`, `frontend/src/components/ui` are restricted only as specified by SYSTEM_CONTEXT (compose UI components; do not edit `frontend/src/components/ui`).",
+    "Backend must remain single-actor; no backend changes are required for this fix."
   ],
   "nonGoals": [
-    "Implementing Internet Identity login UX or changing authentication logic.",
-    "Changing backend access control or session validation semantics.",
-    "Reworking styling/theme across the app.",
-    "Adding new screens or new domain features unrelated to fixing the login-to-signed-in transition."
+    "Implementing or changing Internet Identity login UI/flow.",
+    "Changing authentication logic inside `frontend/src/contexts/AuthContext.tsx` beyond what is necessary to mount the provider.",
+    "Replacing hash-based navigation with a different routing solution.",
+    "Adding new features unrelated to leaving the login screen (e.g., new admin tools, scanner enhancements, new dashboards)."
   ],
   "imageRequirements": {
     "required": [],

@@ -1,25 +1,32 @@
 {
   "kind": "spec_vs_diff_report",
   "version": "1.0",
-  "generatedAt": "2026-02-14T07:35:02.198Z",
-  "summary": "App.tsx now derives the logged-out vs signed-in render directly from `auth` and preserves the reconnecting overlay across both states, but it still uses stored view state (`currentView` via `useState`) and a `switch(currentView)` to control navigation, which conflicts with REQ-10’s acceptance criteria. Additionally, files other than `frontend/src/App.tsx` were modified despite the constraint to modify only App.tsx.",
+  "generatedAt": "2026-02-14T23:23:57.755Z",
+  "summary": "REQ-13 appears implemented in App.tsx by watching auth changes and forcing a valid signed-in hash (roleSelection) when the current hash is empty/invalid, while keeping the refresh/reconnecting overlay logic. REQ-12 is not evidenced: main.tsx was not modified to mount AuthProvider. Two non-requested documentation/state files were modified with broad unrelated feature descriptions.",
   "missing_requirements": [
     {
-      "id": "REQ-10",
-      "requirement": "Remove stored screen-selection React state (the `subView` `useState` and `setSubView`-driven switch) and replace it with a non-stale navigation mechanism, with no `useState`-backed view/screen state or `switch(subView)`-equivalent controlling navigation.",
-      "reason": "The diff shows `currentView` being stored in React state via `useState` and a `switch (currentView)` used to select which screen to render, which is equivalent to stored view/screen state driving navigation.",
+      "id": "REQ-12",
+      "requirement": "Update frontend/src/main.tsx to mount AuthProvider from ./contexts/AuthContext around the entire application (preserving existing QueryClientProvider and InternetIdentityProvider wrappers) so useAuth() can update auth and the UI can transition beyond LoginScreen.",
+      "reason": "The diff summary shows only three modified files: App.tsx, frontend-file-summaries.txt, and project_state.json. There is no evidence that frontend/src/main.tsx was edited to add <AuthProvider> around <App />.",
       "evidence": [
-        "frontend/src/App.tsx"
+        "file-diff summary: Modified files list does not include frontend/src/main.tsx",
+        "frontend/src/App.tsx (truncated)"
       ]
     }
   ],
   "hallucinated_features": [
     {
-      "description": "Modified files beyond the allowed scope (constraint: modify ONLY `frontend/src/App.tsx`).",
-      "reason": "The diff summary lists additional modified files (`frontend-file-summaries.txt` and `project_state.json`) that were not requested and violate the stated constraint.",
+      "description": "Updated project documentation/state to describe expanded UX/admin/operator capabilities and multiple unrelated features (equipment registry, dashboards, scanners, PWA/SW stabilization).",
+      "reason": "Not requested by REQ-12/REQ-13; the BuildRequest explicitly limits scope to fixing post-login navigation and mounting AuthProvider.",
       "evidence": [
-        "frontend-file-summaries.txt",
-        "project_state.json"
+        "project_state.json (truncated)"
+      ]
+    },
+    {
+      "description": "Updated a frontend file summary index with extensive claims about many screens/hooks and behaviors unrelated to the requested login-navigation fix (e.g., React Query hooks, multiple pages, PWA manifest/SW details).",
+      "reason": "Not requested; this is additional meta/documentation change outside REQ-12/REQ-13.",
+      "evidence": [
+        "frontend-file-summaries.txt (truncated)"
       ]
     }
   ],

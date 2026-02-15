@@ -1,6 +1,6 @@
 {
   "schemaVersion": "1.0.0",
-  "projectStateVersion": 22,
+  "projectStateVersion": 24,
   "summary": "Ramp Track now includes expanded UX and admin/operator capabilities beyond the original operator-only scope: (1) a dedicated pre-role Login screen (manual + badge scan) that sets a current user with roles and gates access to role selection; (2) a localStorage-backed Equipment Registry managed from an Admin “Manage Equipment” screen and enforced by agent scan flows (unknown equipment blocked); (3) unified, shared camera scanner UI used by both login and equipment flows, with added scan guide line and later extended barcode format support (incl. 1D formats + PDF_417) plus optional torch/beep/vibration requirements; (4) management dashboards with filtering, drill-down details, and planned scan/audit history by user/equipment with GPS-derived gate labeling. The project also entered a stabilization phase focused on startup/auth hydration (AuthProvider mounting, session persistence keys, isAuthReady deadlocks), service worker stale-cache mitigation, and deployment/publish/credit issues within the hosting platform.",
   "architectural_notes": [
     "Frontend is a React + TypeScript SPA built with Vite and Tailwind; view routing is handled by an internal `view` state + switch statement (no React Router).",
@@ -384,6 +384,14 @@
         "REQ-11"
       ],
       "version": 1
+    },
+    {
+      "id": "feature-update-frontend-src-app-tsx-so-that-when-auth-becomes-truthy-the-app-automatically-navigates-to-a-valid-signed-in-route-defaulting-to-roleselection-if-the-current-url-hash-is-empty-or-invalid-ensuring-the-app-cannot-remain-on-the-logged-out-loginscreen-after-a-successful-login-keep-the-existing-hash-based-routing-structure-and-preserve-the-reconnecting-refresh-overlay-behavior",
+      "title": "Update `frontend/src/App.tsx` so that when `auth` becomes truthy, the app automatically navigates to a valid signed-in route (defaulting to `roleSelection`) if the current URL hash is empty or invalid, ensuring the app cannot remain on the logged-out `LoginScreen` after a successful login. Keep the existing hash-based routing structure and preserve the reconnecting/refresh overlay behavior.",
+      "reqIds": [
+        "REQ-13"
+      ],
+      "version": 1
     }
   ],
   "new_feature_requests": [
@@ -502,6 +510,14 @@
       "summary": "Modify ONLY `frontend/src/main.tsx` to render the React root as a non-empty `<React.StrictMode>` tree that mounts `<App />` wrapped with providers in this exact nesting order: `React.StrictMode` → `QueryClientProvider` (reusing the existing `queryClient`) → `InternetIdentityProvider` → `AuthProvider` → `App`. Ensure imports match exactly: import `React` from `react`, `AuthProvider` from `./contexts/AuthContext`, `InternetIdentityProvider` from `./hooks/useInternetIdentity`, and `App` from `./App`, and keep `./index.css` import. Overwrite the entire file contents to exactly match the user-provided code block.",
       "reqIds": [
         "REQ-8"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "AR-19",
+      "summary": "Update `frontend/src/main.tsx` to mount `AuthProvider` from `./contexts/AuthContext` around the entire application so `useAuth()` can update `auth` and the UI can transition beyond `LoginScreen`. Preserve the existing `QueryClientProvider` and `InternetIdentityProvider` wrappers, and keep user-facing behavior unchanged aside from fixing the login flow.",
+      "reqIds": [
+        "REQ-12"
       ],
       "status": "pending"
     }

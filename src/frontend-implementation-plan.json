@@ -1,59 +1,37 @@
 {
   "kind": "implementation_plan",
   "version": "1.0",
-  "title": "Fix App.tsx auth-driven rendering and replace stale subView state with hash-based navigation",
+  "title": "Fix post-login navigation by ensuring AuthProvider is mounted and hash is corrected on auth",
   "requirements": [
     {
-      "id": "REQ-9",
-      "summary": "Render LoginScreen vs signed-in UI purely based on useAuth().auth during render so the app transitions immediately after successful login.",
+      "id": "REQ-12",
+      "summary": "Mount AuthProvider at the application root in main.tsx while preserving existing QueryClientProvider and InternetIdentityProvider wrappers.",
       "acceptanceCriteria": [
-        "When `auth` is falsy, `App` renders `LoginScreen` (and does not render any signed-in screens).",
-        "When `auth` becomes truthy (e.g., after a successful login), `App` renders the signed-in UI (RoleSelection/agent/admin flows) without requiring a page reload.",
-        "No code path in `App.tsx` depends on `isAuthReady` or any other readiness flag to decide whether to show `LoginScreen` vs signed-in UI.",
-        "`LoginScreen` is not blocked by any `App.tsx` splash/readiness gating; the decision is based on `auth` only."
+        "`frontend/src/main.tsx` renders a non-empty React tree that includes `<App />` wrapped with `<AuthProvider>`.",
+        "After a successful login (manual, camera badge scan, or keyboard-wedge scan), `useAuth().auth` becomes truthy and `App.tsx` re-renders into the signed-in UI instead of remaining on `LoginScreen`.",
+        "No changes are made to any files under `frontend/src/hooks/useInternetIdentity.ts` / `useActor.ts` or `frontend/src/components/ui` (immutable paths)."
       ],
       "file_operations": [
         {
-          "path": "frontend/src/App.tsx",
+          "path": "frontend/src/main.tsx",
           "operation": "modify",
-          "description": "Refactor the top-level render decision to derive UI directly from `useAuth().auth` on every render (no readiness/splash gating and no reliance on `onLogin` callbacks), ensuring React re-renders immediately to the signed-in UI once `auth` becomes truthy."
+          "description": "Import `AuthProvider` from `./contexts/AuthContext` and wrap the existing provider tree so that `<QueryClientProvider>` remains outermost (as today), `InternetIdentityProvider` remains preserved, and `<AuthProvider>` wraps `<App />` (or wraps all children under existing providers) to ensure `useAuth()` is connected to the mounted provider and can update `auth` for navigation beyond `LoginScreen`."
         }
       ]
     },
     {
-      "id": "REQ-10",
-      "summary": "Remove subView useState/switch navigation and replace it with a non-stale navigation mechanism that preserves existing screens and back/continue behaviors.",
+      "id": "REQ-13",
+      "summary": "Ensure App.tsx sets a valid signed-in hash route when auth becomes truthy and the current hash is empty/invalid, without disrupting existing hash routing or reconnect overlay behavior.",
       "acceptanceCriteria": [
-        "`frontend/src/App.tsx` no longer declares `subView` via `useState` and no longer uses a `switch(subView)` (or equivalent stored view/screen state) to control navigation.",
-        "The signed-in flows remain reachable and functional via the existing UI controls (continue/back buttons) and render the same screen components as before.",
-        "Refreshing the page while authenticated does not trap the user on `LoginScreen`; the app renders the signed-in UI based on `auth`."
+        "When `auth` transitions from falsy to truthy, the app renders the signed-in flow and sets `window.location.hash` to a valid view (at minimum `#roleSelection`) if none is present.",
+        "If the URL hash is already a valid signed-in view, the app does not override it on auth changes.",
+        "The reconnecting/refresh overlay continues to work on both logged-out (`LoginScreen`) and signed-in screens (including subscribe-to-refresh-state behavior, auto-dismiss timeout, and user dismiss)."
       ],
       "file_operations": [
         {
           "path": "frontend/src/App.tsx",
           "operation": "modify",
-          "description": "Replace `subView` state + `setSubView`-driven switch with URL-hash-derived navigation (e.g., compute current view from `window.location.hash` during render and subscribe to `hashchange`), and wire all existing screen transitions (continue/back) to update the hash so navigation does not depend on stored React screen-selection state."
-        },
-        {
-          "path": "frontend/src/App.tsx",
-          "operation": "modify",
-          "description": "Ensure the signed-in default view is stable (e.g., role selection) when authenticated and hash is empty/invalid, and ensure logged-out rendering always shows `LoginScreen` regardless of hash while keeping signed-in routes available immediately upon auth becoming truthy."
-        }
-      ]
-    },
-    {
-      "id": "REQ-11",
-      "summary": "Preserve reconnecting/refresh overlay behavior across logged-out and signed-in views, including subscription, auto-dismiss, and manual dismissal.",
-      "acceptanceCriteria": [
-        "`ReconnectingOverlay` still appears when `isRefreshing` (from `useAuth`) or the apiClient refresh subscription indicates refreshing, unless dismissed.",
-        "The overlay still supports manual dismissal and auto-dismiss after the existing timeout window.",
-        "The overlay can display on top of both the logged-out and signed-in app UI without breaking navigation."
-      ],
-      "file_operations": [
-        {
-          "path": "frontend/src/App.tsx",
-          "operation": "modify",
-          "description": "Keep `subscribeToRefreshState` subscription, overlay dismissed state, and timeout-based auto-dismiss logic intact while restructuring App rendering/navigation, and ensure `ReconnectingOverlay` remains mounted above both the logged-out (`LoginScreen`) and signed-in UI trees."
+          "description": "Add an auth-driven navigation correction: when `auth` transitions from falsy to truthy, check the current `window.location.hash` and, if it is empty or does not match a valid signed-in `ViewType`, set `window.location.hash` to `#roleSelection`. Ensure this logic does not override an already-valid signed-in hash, preserves the existing hashchange subscription/currentView state flow, and does not alter the reconnecting/refresh overlay subscription, auto-dismiss timeout, or user-dismiss behavior."
         }
       ]
     }

@@ -2,8 +2,8 @@
   "kind": "feature_evidence_report",
   "features": [
     {
-      "featureId": "feature-update-frontend-src-app-tsx-so-the-rendered-ui-is-derived-directly-from-useauth-auth-during-render-no-auth-readiness-gating-and-so-the-app-reliably-transitions-away-from-loginscreen-as-soon-as-auth-becomes-truthy",
-      "featureTitle": "Update `frontend/src/App.tsx` so the rendered UI is derived directly from `useAuth().auth` during render (no auth-readiness gating), and so the app reliably transitions away from `LoginScreen` as soon as `auth` becomes truthy.",
+      "featureId": "feature-update-frontend-src-app-tsx-so-that-when-auth-becomes-truthy-the-app-automatically-navigates-to-a-valid-signed-in-route-defaulting-to-roleselection-if-the-current-url-hash-is-empty-or-invalid-ensuring-the-app-cannot-remain-on-the-logged-out-loginscreen-after-a-successful-login-keep-the-existing-hash-based-routing-structure-and-preserve-the-reconnecting-refresh-overlay-behavior",
+      "featureTitle": "Update `frontend/src/App.tsx` so that when `auth` becomes truthy, the app automatically navigates to a valid signed-in route (defaulting to `roleSelection`) if the current URL hash is empty or invalid, ensuring the app cannot remain on the logged-out `LoginScreen` after a successful login. Keep the existing hash-based routing structure and preserve the reconnecting/refresh overlay behavior.",
       "files": [
         "frontend/src/App.tsx"
       ],
@@ -19,51 +19,7 @@
         "github-export-icp-cli@1.0.0"
       ],
       "testIds": [
-        "REQ-9"
-      ],
-      "confidence": "high"
-    },
-    {
-      "featureId": "feature-refactor-frontend-src-app-tsx-to-remove-the-stored-screen-selection-react-state-the-subview-usestate-and-setsubview-driven-switch-and-replace-it-with-a-non-stale-navigation-mechanism-that-still-preserves-the-existing-screens-and-back-continue-behaviors-roleselectionscreen-signonscreen-operatorhomescreen-admindashboard-checkoutscreen-checkinscreen-reportissuescreen-manageequipmentscreen",
-      "featureTitle": "Refactor `frontend/src/App.tsx` to remove the stored screen-selection React state (the `subView` `useState` and `setSubView`-driven switch) and replace it with a non-stale navigation mechanism that still preserves the existing screens and back/continue behaviors (RoleSelectionScreen, SignOnScreen, OperatorHomeScreen, AdminDashboard, CheckOutScreen, CheckInScreen, ReportIssueScreen, ManageEquipmentScreen).",
-      "files": [
-        "frontend/src/App.tsx"
-      ],
-      "components": [
-        "authorization@3.0.0",
-        "blob-storage@3.0.0",
-        "camera@1.0.0",
-        "qr-code@1.0.0",
-        "core-infrastructure@1.0.2",
-        "shadcn-ui@1.0.0",
-        "build-template-react@1.0.0",
-        "initial-app@1.0.0",
-        "github-export-icp-cli@1.0.0"
-      ],
-      "testIds": [
-        "REQ-10"
-      ],
-      "confidence": "high"
-    },
-    {
-      "featureId": "feature-preserve-the-reconnecting-refresh-overlay-behavior-in-frontend-src-app-tsx-including-subscribetorefreshstate-timeout-based-auto-dismiss-and-user-dismiss-ensuring-it-works-both-on-the-logged-out-loginscreen-view-and-throughout-the-signed-in-ui",
-      "featureTitle": "Preserve the reconnecting/refresh overlay behavior in `frontend/src/App.tsx` (including `subscribeToRefreshState`, timeout-based auto-dismiss, and user dismiss), ensuring it works both on the logged-out (`LoginScreen`) view and throughout the signed-in UI.",
-      "files": [
-        "frontend/src/App.tsx"
-      ],
-      "components": [
-        "authorization@3.0.0",
-        "blob-storage@3.0.0",
-        "camera@1.0.0",
-        "qr-code@1.0.0",
-        "core-infrastructure@1.0.2",
-        "shadcn-ui@1.0.0",
-        "build-template-react@1.0.0",
-        "initial-app@1.0.0",
-        "github-export-icp-cli@1.0.0"
-      ],
-      "testIds": [
-        "REQ-11"
+        "REQ-13"
       ],
       "confidence": "high"
     }
