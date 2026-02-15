@@ -1,6 +1,6 @@
 {
   "schemaVersion": "1.0.0",
-  "projectStateVersion": 24,
+  "projectStateVersion": 26,
   "summary": "Ramp Track now includes expanded UX and admin/operator capabilities beyond the original operator-only scope: (1) a dedicated pre-role Login screen (manual + badge scan) that sets a current user with roles and gates access to role selection; (2) a localStorage-backed Equipment Registry managed from an Admin “Manage Equipment” screen and enforced by agent scan flows (unknown equipment blocked); (3) unified, shared camera scanner UI used by both login and equipment flows, with added scan guide line and later extended barcode format support (incl. 1D formats + PDF_417) plus optional torch/beep/vibration requirements; (4) management dashboards with filtering, drill-down details, and planned scan/audit history by user/equipment with GPS-derived gate labeling. The project also entered a stabilization phase focused on startup/auth hydration (AuthProvider mounting, session persistence keys, isAuthReady deadlocks), service worker stale-cache mitigation, and deployment/publish/credit issues within the hosting platform.",
   "architectural_notes": [
     "Frontend is a React + TypeScript SPA built with Vite and Tailwind; view routing is handled by an internal `view` state + switch statement (no React Router).",
@@ -518,6 +518,28 @@
       "summary": "Update `frontend/src/main.tsx` to mount `AuthProvider` from `./contexts/AuthContext` around the entire application so `useAuth()` can update `auth` and the UI can transition beyond `LoginScreen`. Preserve the existing `QueryClientProvider` and `InternetIdentityProvider` wrappers, and keep user-facing behavior unchanged aside from fixing the login flow.",
       "reqIds": [
         "REQ-12"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "AR-20",
+      "summary": "Ship a patch that guarantees the app transitions beyond LoginScreen after successful login (ensure App reacts to auth becoming truthy and navigates/derives signed-in view accordingly)",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-21",
+      "summary": "Update `frontend/src/main.tsx` so the React app is mounted with `AuthProvider` enabled at the application root (wrapping `<App />`), while preserving the existing `QueryClientProvider` and `InternetIdentityProvider` wrappers, so that `useAuth()` state updates (including successful login) can drive UI transitions beyond the login screen.",
+      "reqIds": [
+        "REQ-14"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "AR-22",
+      "summary": "Ensure `frontend/src/App.tsx` reliably transitions away from `LoginScreen` as soon as `useAuth().auth` becomes truthy, by enforcing the existing hash-based navigation behavior that redirects authenticated users to a valid signed-in route (defaulting to `roleSelection`) when the current URL hash is empty or invalid, and by rendering the signed-in route content whenever `auth` is truthy.",
+      "reqIds": [
+        "REQ-15"
       ],
       "status": "pending"
     }

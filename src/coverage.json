@@ -1,18 +1,18 @@
 {
   "kind": "coverage_report",
   "version": "1.0",
-  "generatedAt": "2026-02-14T23:23:57.758Z",
+  "generatedAt": "2026-02-15T22:03:57.312Z",
   "sources": {
     "buildRequest": true,
     "implementationPlan": true
   },
   "requirements": {
     "total": 2,
-    "implemented": 1,
+    "implemented": 0,
     "items": [
       {
-        "id": "REQ-12",
-        "summary": "Update `frontend/src/main.tsx` to mount `AuthProvider` from `./contexts/AuthContext` around the entire application so `useAuth()` can update `auth` and the UI can transition beyond `LoginScreen`. Preserve the existing `QueryClientProvider` and `InternetIdentityProvider` wrappers, and keep user-facing behavior unchanged aside from fixing the login flow.",
+        "id": "REQ-14",
+        "summary": "Update `frontend/src/main.tsx` so the React app is mounted with `AuthProvider` enabled at the application root (wrapping `<App />`), while preserving the existing `QueryClientProvider` and `InternetIdentityProvider` wrappers, so that `useAuth()` state updates (including successful login) can drive UI transitions beyond the login screen.",
         "status": "missing",
         "plannedFiles": [
           "frontend/src/main.tsx"
@@ -20,24 +20,20 @@
         "matchedFiles": []
       },
       {
-        "id": "REQ-13",
-        "summary": "Update `frontend/src/App.tsx` so that when `auth` becomes truthy, the app automatically navigates to a valid signed-in route (defaulting to `roleSelection`) if the current URL hash is empty or invalid, ensuring the app cannot remain on the logged-out `LoginScreen` after a successful login. Keep the existing hash-based routing structure and preserve the reconnecting/refresh overlay behavior.",
-        "status": "implemented",
+        "id": "REQ-15",
+        "summary": "Ensure `frontend/src/App.tsx` reliably transitions away from `LoginScreen` as soon as `useAuth().auth` becomes truthy, by enforcing the existing hash-based navigation behavior that redirects authenticated users to a valid signed-in route (defaulting to `roleSelection`) when the current URL hash is empty or invalid, and by rendering the signed-in route content whenever `auth` is truthy.",
+        "status": "missing",
         "plannedFiles": [
           "frontend/src/App.tsx"
         ],
-        "matchedFiles": [
-          "frontend/src/App.tsx"
-        ]
+        "matchedFiles": []
       }
     ]
   },
   "changedFiles": [
     "build-request.json",
     "feature_evidence.json",
-    "frontend-file-summaries.txt",
     "frontend-implementation-plan.json",
-    "frontend/src/App.tsx",
     "project_state.json",
     "scratch/component-selection.json",
     "spec.md",

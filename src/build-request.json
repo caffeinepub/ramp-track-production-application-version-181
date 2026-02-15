@@ -1,57 +1,54 @@
 {
   "kind": "build_request",
-  "title": "Fix post-login navigation so the app reliably leaves the Login screen",
+  "title": "Patch login flow so the app always transitions beyond LoginScreen after successful sign-in",
   "priority": "high",
   "requirements": [
     {
-      "id": "REQ-12",
-      "text": "Update `frontend/src/main.tsx` to mount `AuthProvider` from `./contexts/AuthContext` around the entire application so `useAuth()` can update `auth` and the UI can transition beyond `LoginScreen`. Preserve the existing `QueryClientProvider` and `InternetIdentityProvider` wrappers, and keep user-facing behavior unchanged aside from fixing the login flow.",
+      "id": "REQ-14",
+      "text": "Update `frontend/src/main.tsx` so the React app is mounted with `AuthProvider` enabled at the application root (wrapping `<App />`), while preserving the existing `QueryClientProvider` and `InternetIdentityProvider` wrappers, so that `useAuth()` state updates (including successful login) can drive UI transitions beyond the login screen.",
       "target": "frontend",
       "source": {
         "messageIds": [
-          "recent-User-1"
+          "msg-user-1"
         ],
         "quotes": [
-          "Build it",
-          "Yes. Do whatever it takes to get beyond the login"
+          "So I need a patch that fixes all of the issues and guarantees I'll get beyond the login"
         ]
       },
       "acceptanceCriteria": [
-        "`frontend/src/main.tsx` renders a non-empty React tree that includes `<App />` wrapped with `<AuthProvider>`.",
-        "After a successful login (manual, camera badge scan, or keyboard-wedge scan), `useAuth().auth` becomes truthy and `App.tsx` re-renders into the signed-in UI instead of remaining on `LoginScreen`.",
-        "No changes are made to any files under `frontend/src/hooks/useInternetIdentity.ts` / `useActor.ts` or `frontend/src/components/ui` (immutable paths)."
+        "`frontend/src/main.tsx` renders a non-empty React tree that includes `<App />`.",
+        "`AuthProvider` from `frontend/src/contexts/AuthContext.tsx` wraps `<App />` (directly or indirectly) so that `useAuth()` in `App.tsx` and `LoginScreen.tsx` is backed by the real provider rather than default context values.",
+        "After a successful login (manual credentials or badge scan), `auth` becomes truthy in `App.tsx` and the UI no longer remains on `LoginScreen`."
       ]
     },
     {
-      "id": "REQ-13",
-      "text": "Update `frontend/src/App.tsx` so that when `auth` becomes truthy, the app automatically navigates to a valid signed-in route (defaulting to `roleSelection`) if the current URL hash is empty or invalid, ensuring the app cannot remain on the logged-out `LoginScreen` after a successful login. Keep the existing hash-based routing structure and preserve the reconnecting/refresh overlay behavior.",
+      "id": "REQ-15",
+      "text": "Ensure `frontend/src/App.tsx` reliably transitions away from `LoginScreen` as soon as `useAuth().auth` becomes truthy, by enforcing the existing hash-based navigation behavior that redirects authenticated users to a valid signed-in route (defaulting to `roleSelection`) when the current URL hash is empty or invalid, and by rendering the signed-in route content whenever `auth` is truthy.",
       "target": "frontend",
       "source": {
         "messageIds": [
-          "recent-User-1"
+          "msg-user-1"
         ],
         "quotes": [
-          "It still doesn't go beyond the login screen. Why? Thought you fixed it",
-          "Yes. Do whatever it takes to get beyond the login"
+          "So I need a patch that fixes all of the issues and guarantees I'll get beyond the login"
         ]
       },
       "acceptanceCriteria": [
-        "When `auth` transitions from falsy to truthy, the app renders the signed-in flow and sets `window.location.hash` to a valid view (at minimum `#roleSelection`) if none is present.",
-        "If the URL hash is already a valid signed-in view, the app does not override it on auth changes.",
-        "The reconnecting/refresh overlay continues to work on both logged-out (`LoginScreen`) and signed-in screens (including subscribe-to-refresh-state behavior, auto-dismiss timeout, and user dismiss)."
+        "With `window.location.hash` empty or invalid, logging in successfully results in navigation to `#roleSelection` and the Role Selection screen is rendered (not the login screen).",
+        "With a valid signed-in hash route already set (e.g. `#agentMenu`), logging in successfully keeps or navigates to a valid signed-in screen instead of remaining on `LoginScreen`.",
+        "The reconnecting/refresh overlay behavior (`subscribeToRefreshState`, timeout auto-dismiss, manual dismiss) continues to work both when logged out (LoginScreen) and when signed in."
       ]
     }
   ],
   "constraints": [
-    "Use English for any user-facing text.",
-    "Frontend immutable paths must not be edited: `frontend/src/hooks/useInternetIdentity.ts`, `frontend/src/hooks/useActor.ts`, `frontend/src/main.tsx`, `frontend/src/components/ui` are restricted only as specified by SYSTEM_CONTEXT (compose UI components; do not edit `frontend/src/components/ui`).",
-    "Backend must remain single-actor; no backend changes are required for this fix."
+    "Frontend must remain React + TypeScript with Tailwind and React Query.",
+    "Do not modify any files under `frontend/src/components/ui` (read-only components).",
+    "Backend must remain a single Motoko actor; do not introduce additional backend services."
   ],
   "nonGoals": [
-    "Implementing or changing Internet Identity login UI/flow.",
-    "Changing authentication logic inside `frontend/src/contexts/AuthContext.tsx` beyond what is necessary to mount the provider.",
-    "Replacing hash-based navigation with a different routing solution.",
-    "Adding new features unrelated to leaving the login screen (e.g., new admin tools, scanner enhancements, new dashboards)."
+    "Implementing Internet Identity sign-in UX (calling `useInternetIdentity().login()`) or changing authentication mechanisms beyond fixing the current login transition.",
+    "Refactoring storage key conventions across the app (e.g., `ramptrack_v2_session` vs `ramptrack_auth_state`) unless required to fix the login-to-signed-in transition.",
+    "Adding new admin/operator features unrelated to getting past login."
   ],
   "imageRequirements": {
     "required": [],

@@ -1,39 +1,37 @@
 {
   "kind": "spec_vs_diff_report",
   "version": "1.0",
-  "generatedAt": "2026-02-14T23:23:57.755Z",
-  "summary": "REQ-13 appears implemented in App.tsx by watching auth changes and forcing a valid signed-in hash (roleSelection) when the current hash is empty/invalid, while keeping the refresh/reconnecting overlay logic. REQ-12 is not evidenced: main.tsx was not modified to mount AuthProvider. Two non-requested documentation/state files were modified with broad unrelated feature descriptions.",
+  "generatedAt": "2026-02-15T22:03:57.309Z",
+  "summary": "The diff does not implement the requested login-flow fixes. Only `project_state.json` was modified (documentation/metadata), with no changes to `frontend/src/main.tsx` or `frontend/src/App.tsx` to mount `AuthProvider` or enforce hash-based post-login navigation.",
   "missing_requirements": [
     {
-      "id": "REQ-12",
-      "requirement": "Update frontend/src/main.tsx to mount AuthProvider from ./contexts/AuthContext around the entire application (preserving existing QueryClientProvider and InternetIdentityProvider wrappers) so useAuth() can update auth and the UI can transition beyond LoginScreen.",
-      "reason": "The diff summary shows only three modified files: App.tsx, frontend-file-summaries.txt, and project_state.json. There is no evidence that frontend/src/main.tsx was edited to add <AuthProvider> around <App />.",
+      "id": "REQ-14",
+      "requirement": "Update `frontend/src/main.tsx` so the React app is mounted with `AuthProvider` enabled at the application root (wrapping `<App />`), while preserving the existing `QueryClientProvider` and `InternetIdentityProvider` wrappers.",
+      "reason": "No diff evidence of any changes to `frontend/src/main.tsx` or any React root mounting code; only `project_state.json` was modified.",
       "evidence": [
-        "file-diff summary: Modified files list does not include frontend/src/main.tsx",
-        "frontend/src/App.tsx (truncated)"
+        "project_state.json"
+      ]
+    },
+    {
+      "id": "REQ-15",
+      "requirement": "Ensure `frontend/src/App.tsx` reliably transitions away from `LoginScreen` as soon as `useAuth().auth` becomes truthy by enforcing hash-based navigation to a valid signed-in route (default `roleSelection`) and rendering signed-in route content whenever `auth` is truthy, while preserving reconnecting/refresh overlay behavior.",
+      "reason": "No diff evidence of any changes to `frontend/src/App.tsx` or routing/hash logic; only `project_state.json` was modified.",
+      "evidence": [
+        "project_state.json"
       ]
     }
   ],
   "hallucinated_features": [
     {
-      "description": "Updated project documentation/state to describe expanded UX/admin/operator capabilities and multiple unrelated features (equipment registry, dashboards, scanners, PWA/SW stabilization).",
-      "reason": "Not requested by REQ-12/REQ-13; the BuildRequest explicitly limits scope to fixing post-login navigation and mounting AuthProvider.",
+      "description": "Updated/expanded project metadata describing additional UX/admin/operator capabilities and stabilization items (e.g., AuthProvider mounting, session persistence keys, isAuthReady deadlocks, etc.).",
+      "reason": "BuildRequest only asks for concrete code changes in `frontend/src/main.tsx` and `frontend/src/App.tsx` to fix the login transition. Modifying `project_state.json` is not requested and does not itself implement the required behavior.",
       "evidence": [
-        "project_state.json (truncated)"
-      ]
-    },
-    {
-      "description": "Updated a frontend file summary index with extensive claims about many screens/hooks and behaviors unrelated to the requested login-navigation fix (e.g., React Query hooks, multiple pages, PWA manifest/SW details).",
-      "reason": "Not requested; this is additional meta/documentation change outside REQ-12/REQ-13.",
-      "evidence": [
-        "frontend-file-summaries.txt (truncated)"
+        "project_state.json"
       ]
     }
   ],
-  "confidence": 0.74,
+  "confidence": 0.86,
   "changed_files": [
-    "frontend-file-summaries.txt",
-    "frontend/src/App.tsx",
     "project_state.json"
   ]
 }

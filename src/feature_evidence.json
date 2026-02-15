@@ -1,27 +1,4 @@
 {
   "kind": "feature_evidence_report",
-  "features": [
-    {
-      "featureId": "feature-update-frontend-src-app-tsx-so-that-when-auth-becomes-truthy-the-app-automatically-navigates-to-a-valid-signed-in-route-defaulting-to-roleselection-if-the-current-url-hash-is-empty-or-invalid-ensuring-the-app-cannot-remain-on-the-logged-out-loginscreen-after-a-successful-login-keep-the-existing-hash-based-routing-structure-and-preserve-the-reconnecting-refresh-overlay-behavior",
-      "featureTitle": "Update `frontend/src/App.tsx` so that when `auth` becomes truthy, the app automatically navigates to a valid signed-in route (defaulting to `roleSelection`) if the current URL hash is empty or invalid, ensuring the app cannot remain on the logged-out `LoginScreen` after a successful login. Keep the existing hash-based routing structure and preserve the reconnecting/refresh overlay behavior.",
-      "files": [
-        "frontend/src/App.tsx"
-      ],
-      "components": [
-        "authorization@3.0.0",
-        "blob-storage@3.0.0",
-        "camera@1.0.0",
-        "qr-code@1.0.0",
-        "core-infrastructure@1.0.2",
-        "shadcn-ui@1.0.0",
-        "build-template-react@1.0.0",
-        "initial-app@1.0.0",
-        "github-export-icp-cli@1.0.0"
-      ],
-      "testIds": [
-        "REQ-13"
-      ],
-      "confidence": "high"
-    }
-  ]
+  "features": []
 }
