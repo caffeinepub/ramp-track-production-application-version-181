@@ -1,57 +1,105 @@
 {
   "kind": "build_request",
-  "title": "Patch login flow so the app always transitions beyond LoginScreen after successful sign-in",
-  "priority": "high",
+  "title": "Harden app for reliable production publish and cache-safe startup",
+  "projectName": "Ramp Track",
+  "priority": "normal",
   "requirements": [
     {
-      "id": "REQ-14",
-      "text": "Update `frontend/src/main.tsx` so the React app is mounted with `AuthProvider` enabled at the application root (wrapping `<App />`), while preserving the existing `QueryClientProvider` and `InternetIdentityProvider` wrappers, so that `useAuth()` state updates (including successful login) can drive UI transitions beyond the login screen.",
+      "id": "REQ-1",
+      "text": "Add a built-in “deployment diagnostics” indicator in the UI that clearly shows the current app build/version and basic runtime status (e.g., service worker status, online/offline), so the user can confirm whether production has updated after a publish attempt.",
       "target": "frontend",
       "source": {
         "messageIds": [
-          "msg-user-1"
+          "recent-messages"
         ],
         "quotes": [
-          "So I need a patch that fixes all of the issues and guarantees I'll get beyond the login"
+          "Rebuild and publish it. Hopefully that works"
         ]
       },
       "acceptanceCriteria": [
-        "`frontend/src/main.tsx` renders a non-empty React tree that includes `<App />`.",
-        "`AuthProvider` from `frontend/src/contexts/AuthContext.tsx` wraps `<App />` (directly or indirectly) so that `useAuth()` in `App.tsx` and `LoginScreen.tsx` is backed by the real provider rather than default context values.",
-        "After a successful login (manual credentials or badge scan), `auth` becomes truthy in `App.tsx` and the UI no longer remains on `LoginScreen`."
+        "A visible app version/build label is rendered somewhere accessible from the login flow (e.g., Login screen footer or a small diagnostics link).",
+        "The version/build value is derived from a single constant so it can be updated per release without hunting through multiple files.",
+        "The diagnostics display includes whether a service worker is controlling the page and whether the browser is currently online."
       ]
     },
     {
-      "id": "REQ-15",
-      "text": "Ensure `frontend/src/App.tsx` reliably transitions away from `LoginScreen` as soon as `useAuth().auth` becomes truthy, by enforcing the existing hash-based navigation behavior that redirects authenticated users to a valid signed-in route (defaulting to `roleSelection`) when the current URL hash is empty or invalid, and by rendering the signed-in route content whenever `auth` is truthy.",
+      "id": "REQ-2",
+      "text": "Add a user-invokable “force refresh / clear cached app” control reachable from the login screen that triggers the existing cache/service-worker reset behavior (unregister SW, clear Cache Storage, clear local/session storage as appropriate) and then reloads the app.",
       "target": "frontend",
       "source": {
         "messageIds": [
-          "msg-user-1"
+          "recent-messages"
         ],
         "quotes": [
-          "So I need a patch that fixes all of the issues and guarantees I'll get beyond the login"
+          "As long as I can finally get beyond the login screen you keep promising. Rebuild it"
         ]
       },
       "acceptanceCriteria": [
-        "With `window.location.hash` empty or invalid, logging in successfully results in navigation to `#roleSelection` and the Role Selection screen is rendered (not the login screen).",
-        "With a valid signed-in hash route already set (e.g. `#agentMenu`), logging in successfully keeps or navigates to a valid signed-in screen instead of remaining on `LoginScreen`.",
-        "The reconnecting/refresh overlay behavior (`subscribeToRefreshState`, timeout auto-dismiss, manual dismiss) continues to work both when logged out (LoginScreen) and when signed in."
+        "Login screen includes a clearly labeled action such as “Troubleshooting: Clear cached app and reload”.",
+        "Invoking the action unregisters any service workers for the origin (when supported), clears Cache Storage, and reloads the page.",
+        "The action uses plain English confirmation/warning text before destructive clearing occurs."
+      ]
+    },
+    {
+      "id": "REQ-3",
+      "text": "Make service worker registration in frontend/index.html conditional via a URL query parameter (e.g., ?nosw=1) to allow a publish verification path that bypasses service worker caching entirely.",
+      "target": "frontend",
+      "source": {
+        "messageIds": [
+          "recent-messages"
+        ],
+        "quotes": [
+          "I want to understand why the error is happening first so I can make the app and changes go live.."
+        ]
+      },
+      "acceptanceCriteria": [
+        "When the page is loaded with ?nosw=1 (or equivalent documented parameter), no service worker is registered and a console log indicates SW registration was intentionally skipped.",
+        "When the parameter is absent, current service worker registration and auto-update behavior continues to work as it does now.",
+        "User-facing text remains in English (if any UI exposure is added for this mode)."
+      ]
+    },
+    {
+      "id": "REQ-4",
+      "text": "Ensure frontend/src/App.tsx mounts authentication context inside App.tsx (since frontend/src/main.tsx cannot be edited) by wrapping the existing AppContent subtree with <AuthProvider>, and ensure all useAuth() calls remain inside the provider-mounted subtree without changing existing hash-based navigation and reconnecting overlay behavior.",
+      "target": "frontend",
+      "source": {
+        "messageIds": [
+          "recent-messages"
+        ],
+        "quotes": [
+          "On the draft. I can finally get passed the login screen. So I need this to work"
+        ]
+      },
+      "acceptanceCriteria": [
+        "App exports a top-level component that renders <AuthProvider><AppContent/></AuthProvider>, ensuring AuthContext is always mounted.",
+        "No useAuth() hook is invoked outside AuthProvider.",
+        "Existing hash-based routing targets and behaviors remain unchanged (roleSelection/signOn/agentMenu/adminMenu/takeEquipment/returnEquipment/reportIssue/manageEquipment).",
+        "Existing reconnecting/refresh overlay behavior continues to function both when logged out and signed in."
       ]
     }
   ],
   "constraints": [
-    "Frontend must remain React + TypeScript with Tailwind and React Query.",
-    "Do not modify any files under `frontend/src/components/ui` (read-only components).",
-    "Backend must remain a single Motoko actor; do not introduce additional backend services."
+    "Do not edit files under frontend/src/components/ui (read-only shadcn components).",
+    "Do not edit immutable frontend paths: frontend/src/main.tsx, frontend/src/hooks/useInternetIdentity.ts(x), frontend/src/hooks/useActor.ts.",
+    "Backend must remain a single Motoko actor in backend/main.mo; add migration.mo only if upgrading stable state is required."
   ],
   "nonGoals": [
-    "Implementing Internet Identity sign-in UX (calling `useInternetIdentity().login()`) or changing authentication mechanisms beyond fixing the current login transition.",
-    "Refactoring storage key conventions across the app (e.g., `ramptrack_v2_session` vs `ramptrack_auth_state`) unless required to fix the login-to-signed-in transition.",
-    "Adding new admin/operator features unrelated to getting past login."
+    "Fixing Caffeine platform-level production publish/deployment infrastructure errors directly (outside app code).",
+    "Adding third-party authentication providers (only Internet Identity is supported).",
+    "Introducing external databases or non-Motoko backend services."
   ],
   "imageRequirements": {
     "required": [],
     "edits": []
+  },
+  "userProfileUpdate": {
+    "goalsToAdd": [],
+    "goalsToRemove": [],
+    "preferencesToAdd": [],
+    "preferencesToRemove": [],
+    "miscToAdd": [],
+    "miscToRemove": [],
+    "fieldsToSet": {},
+    "fieldsToDelete": []
   }
 }

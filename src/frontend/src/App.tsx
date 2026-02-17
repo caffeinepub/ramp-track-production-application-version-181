@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useAuth } from './contexts/AuthContext';
+import { AuthProvider, useAuth } from './contexts/AuthContext';
 import ReconnectingOverlay from './components/ReconnectingOverlay';
 import LoginScreen from './components/LoginScreen';
 import SignOnScreen from './components/SignOnScreen';
@@ -32,7 +32,8 @@ function navigateTo(view: ViewType) {
   window.location.hash = view;
 }
 
-export default function App() {
+// Inner component that uses useAuth() - must be inside AuthProvider
+function AppContent() {
   const { auth, isRefreshing } = useAuth();
   
   const [apiClientRefreshing, setApiClientRefreshing] = useState(false);
@@ -216,5 +217,14 @@ export default function App() {
         onDismiss={handleOverlayDismiss}
       />
     </>
+  );
+}
+
+// Default export wraps AppContent with AuthProvider
+export default function App() {
+  return (
+    <AuthProvider>
+      <AppContent />
+    </AuthProvider>
   );
 }

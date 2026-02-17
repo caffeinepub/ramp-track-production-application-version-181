@@ -5,133 +5,90 @@
     <link rel="icon" type="image/png" href="/assets/AppThumbnail.png" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
     <meta name="theme-color" content="#0f172a" />
-    <meta name="description" content="Ramp Track - Equipment Management System" />
-    
-    <!-- PWA Meta Tags -->
+    <meta name="description" content="Ramp Track - Equipment tracking and management system" />
     <link rel="manifest" href="/manifest.json" />
     <link rel="apple-touch-icon" href="/assets/AppThumbnail.png" />
-    <meta name="apple-mobile-web-app-capable" content="yes" />
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-    <meta name="apple-mobile-web-app-title" content="Ramp Track" />
-    
-    <!-- Preload critical assets -->
-    <link rel="preload" as="image" href="/assets/RampTrackSplash.png" />
-    <link rel="preload" as="image" href="/assets/HomescreenBackground.jpg" />
-    <link rel="preload" as="image" href="/assets/Check_In_Icon-1.png" />
-    <link rel="preload" as="image" href="/assets/Check_Out_Icon-1.png" />
-    <link rel="preload" as="image" href="/assets/Report_Issue_Icon-1.png" />
-    
-    <!-- Load ZXing Browser library for QR and barcode scanning -->
-    <script src="https://unpkg.com/@zxing/browser@0.1.1" defer></script>
-    
     <title>Ramp Track</title>
   </head>
   <body>
-    <div id="root">
-      <!-- Loading fallback with splash image -->
-      <div style="
-        position: fixed;
-        inset: 0;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
-      ">
-        <img 
-          src="/assets/RampTrackSplash.png" 
-          alt="Ramp Track" 
-          style="max-width: 80%; max-height: 80%; object-fit: contain;"
-        />
-      </div>
-    </div>
+    <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
     
-    <!-- Service Worker Registration with Auto-Update -->
+    <!-- Service Worker Registration with conditional loading and auto-update -->
     <script>
-      if ('serviceWorker' in navigator) {
-        let refreshing = false;
+      (function() {
+        'use strict';
         
-        // Detect controller change and reload page once
-        navigator.serviceWorker.addEventListener('controllerchange', () => {
-          console.log('[SW] Controller changed, reloading page');
-          if (!refreshing) {
-            refreshing = true;
-            window.location.reload();
-          }
-        });
+        // Check for nosw parameter
+        const urlParams = new URLSearchParams(window.location.search);
+        const noServiceWorker = urlParams.get('nosw') === '1';
         
-        window.addEventListener('load', () => {
-          navigator.serviceWorker.register('/sw.js')
-            .then(registration => {
-              console.log('[SW] Service worker registered successfully:', registration.scope);
-              
-              // Check for updates immediately after registration
-              registration.update();
-              console.log('[SW] Checking for updates...');
-              
-              // Handle updates when a new service worker is found
-              registration.addEventListener('updatefound', () => {
-                const newWorker = registration.installing;
-                console.log('[SW] Update found, new worker installing...');
+        if (noServiceWorker) {
+          console.log('[SW] Service worker registration skipped (nosw=1 parameter detected)');
+          return;
+        }
+        
+        if ('serviceWorker' in navigator) {
+          window.addEventListener('load', function() {
+            navigator.serviceWorker.register('/sw.js')
+              .then(function(registration) {
+                console.log('[SW] Registration successful, scope:', registration.scope);
                 
-                newWorker.addEventListener('statechange', () => {
-                  console.log('[SW] New worker state:', newWorker.state);
+                // Force immediate update check
+                registration.update().then(function() {
+                  console.log('[SW] Update check completed');
+                }).catch(function(err) {
+                  console.warn('[SW] Update check failed:', err);
+                });
+                
+                // Listen for controller change (new SW activated)
+                navigator.serviceWorker.addEventListener('controllerchange', function() {
+                  console.log('[SW] Controller changed - new version activated');
+                  console.log('[SW] Reloading page to use new version...');
+                  window.location.reload();
+                });
+                
+                // Listen for updates
+                registration.addEventListener('updatefound', function() {
+                  const newWorker = registration.installing;
+                  console.log('[SW] Update found, new worker installing...');
                   
-                  if (newWorker.state === 'installed') {
-                    if (navigator.serviceWorker.controller) {
-                      // New version available, existing version is running
-                      console.log('[SW] New version available!');
+                  newWorker.addEventListener('statechange', function() {
+                    console.log('[SW] New worker state:', newWorker.state);
+                    
+                    if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                      console.log('[SW] New version available, will reload in 1 second...');
                       
-                      // Option 1: Auto-reload after a short delay
-                      setTimeout(() => {
-                        console.log('[SW] Auto-reloading to activate new version...');
-                        newWorker.postMessage({ type: 'SKIP_WAITING' });
+                      // Auto-reload after brief delay
+                      setTimeout(function() {
+                        console.log('[SW] Reloading to activate new version...');
+                        window.location.reload();
                       }, 1000);
                       
-                      // Option 2: Show user prompt (uncomment to use instead of auto-reload)
-                      /*
-                      if (confirm('New version available! Reload to update?')) {
-                        newWorker.postMessage({ type: 'SKIP_WAITING' });
-                      }
-                      */
-                    } else {
-                      // First install, no existing version
-                      console.log('[SW] Service worker installed for the first time');
+                      // Alternative: Prompt user (commented out)
+                      // if (confirm('New version available! Reload to update?')) {
+                      //   window.location.reload();
+                      // }
                     }
-                  }
-                  
-                  if (newWorker.state === 'activated') {
-                    console.log('[SW] New worker activated');
-                  }
+                  });
                 });
+                
+                // Periodic update checks (every 60 seconds)
+                setInterval(function() {
+                  console.log('[SW] Performing periodic update check...');
+                  registration.update().catch(function(err) {
+                    console.warn('[SW] Periodic update check failed:', err);
+                  });
+                }, 60000);
+              })
+              .catch(function(err) {
+                console.error('[SW] Registration failed:', err);
               });
-              
-              // Periodic update check every 60 seconds
-              setInterval(() => {
-                console.log('[SW] Periodic update check...');
-                registration.update();
-              }, 60000);
-            })
-            .catch(err => {
-              console.error('[SW] Service worker registration failed:', err);
-            });
-        });
-        
-        // Handle install prompt for Add to Home Screen
-        let deferredPrompt;
-        window.addEventListener('beforeinstallprompt', (e) => {
-          e.preventDefault();
-          deferredPrompt = e;
-          console.log('[PWA] Install prompt available');
-        });
-        
-        window.addEventListener('appinstalled', () => {
-          console.log('[PWA] App installed successfully');
-          deferredPrompt = null;
-        });
-      } else {
-        console.warn('[SW] Service workers are not supported in this browser');
-      }
+          });
+        } else {
+          console.warn('[SW] Service workers not supported in this browser');
+        }
+      })();
     </script>
   </body>
 </html>

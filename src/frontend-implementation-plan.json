@@ -1,37 +1,100 @@
 {
   "kind": "implementation_plan",
   "version": "1.0",
-  "title": "Fix AuthProvider mounting and enforce post-login hash navigation to leave LoginScreen",
+  "title": "Ramp Track - Production publish hardening (diagnostics + cache-safe startup)",
   "requirements": [
     {
-      "id": "REQ-14",
-      "summary": "Mount the React app with AuthProvider at the application root so useAuth() reflects real auth state and successful login triggers UI transitions.",
+      "id": "REQ-1",
+      "summary": "Add a deployment diagnostics indicator showing app build/version plus online/offline and service worker control status, reachable from the login flow.",
       "acceptanceCriteria": [
-        "`frontend/src/main.tsx` renders a non-empty React tree that includes `<App />`.",
-        "`AuthProvider` from `frontend/src/contexts/AuthContext.tsx` wraps `<App />` (directly or indirectly) so that `useAuth()` in `App.tsx` and `LoginScreen.tsx` is backed by the real provider rather than default context values.",
-        "After a successful login (manual credentials or badge scan), `auth` becomes truthy in `App.tsx` and the UI no longer remains on `LoginScreen`."
+        "A visible app version/build label is rendered somewhere accessible from the login flow (e.g., Login screen footer or a small diagnostics link).",
+        "The version/build value is derived from a single constant so it can be updated per release without hunting through multiple files.",
+        "The diagnostics display includes whether a service worker is controlling the page and whether the browser is currently online."
       ],
       "file_operations": [
         {
-          "path": "frontend/src/main.tsx",
+          "path": "frontend/src/config/appBuild.ts",
+          "operation": "create",
+          "description": "Create a single-source build/version constant (e.g., APP_BUILD_VERSION and optional BUILD_DATE) that the UI can import to render the deployed build label."
+        },
+        {
+          "path": "frontend/src/components/AuthDiagnosticsPanel.tsx",
           "operation": "modify",
-          "description": "Wrap <App /> with AuthProvider from frontend/src/contexts/AuthContext.tsx while preserving the existing QueryClientProvider and InternetIdentityProvider wrappers, so AuthContext state updates propagate to App.tsx/LoginScreen.tsx and allow navigation past the login screen."
+          "description": "Implement the deployment diagnostics UI: render the build/version from the single constant, show navigator.onLine status, and show whether navigator.serviceWorker.controller is present (plus any helpful SW details like controller scriptURL when available)."
+        },
+        {
+          "path": "frontend/src/components/LoginScreen.tsx",
+          "operation": "modify",
+          "description": "Wire a small, clearly labeled diagnostics entry in the login flow (e.g., footer link/button) that reveals AuthDiagnosticsPanel.tsx and shows the build label somewhere visible on the login screen."
+        },
+        {
+          "path": "frontend/src/components/OfflineIndicator.tsx",
+          "operation": "modify",
+          "description": "Implement the existing placeholder as a small reusable indicator that listens to online/offline events and can be used by AuthDiagnosticsPanel and/or LoginScreen to reflect connectivity."
         }
       ]
     },
     {
-      "id": "REQ-15",
-      "summary": "Make App.tsx consistently redirect authenticated users to a valid signed-in hash route and render signed-in route content whenever auth is truthy without breaking the refresh/reconnecting overlay behavior.",
+      "id": "REQ-2",
+      "summary": "Add a user-invokable force refresh / clear cached app action on the login screen that clears caches/storage, unregisters service workers, then reloads after confirmation.",
       "acceptanceCriteria": [
-        "With `window.location.hash` empty or invalid, logging in successfully results in navigation to `#roleSelection` and the Role Selection screen is rendered (not the login screen).",
-        "With a valid signed-in hash route already set (e.g. `#agentMenu`), logging in successfully keeps or navigates to a valid signed-in screen instead of remaining on `LoginScreen`.",
-        "The reconnecting/refresh overlay behavior (`subscribeToRefreshState`, timeout auto-dismiss, manual dismiss) continues to work both when logged out (LoginScreen) and when signed in."
+        "Login screen includes a clearly labeled action such as “Troubleshooting: Clear cached app and reload”.",
+        "Invoking the action unregisters any service workers for the origin (when supported), clears Cache Storage, and reloads the page.",
+        "The action uses plain English confirmation/warning text before destructive clearing occurs."
+      ],
+      "file_operations": [
+        {
+          "path": "frontend/src/lib/clearCachedApp.ts",
+          "operation": "create",
+          "description": "Add a shared utility to perform the destructive reset flow: show an English confirmation dialog, unregister all service workers for the origin when supported, clear Cache Storage, clear localStorage and sessionStorage as appropriate, then reload the page."
+        },
+        {
+          "path": "frontend/src/components/LoginScreen.tsx",
+          "operation": "modify",
+          "description": "Add a clearly labeled troubleshooting control on the login screen that calls the shared clearCachedApp utility and uses plain-English warning/confirmation messaging before clearing."
+        },
+        {
+          "path": "frontend/src/components/ErrorBoundary.tsx",
+          "operation": "modify",
+          "description": "Refactor the existing “Clear Cache & Reload” behavior to reuse the shared clearCachedApp utility so the clearing behavior is consistent across error recovery and login troubleshooting."
+        }
+      ]
+    },
+    {
+      "id": "REQ-3",
+      "summary": "Make service worker registration conditional in index.html via a URL query parameter (e.g., ?nosw=1) for cache-bypassed publish verification.",
+      "acceptanceCriteria": [
+        "When the page is loaded with ?nosw=1 (or equivalent documented parameter), no service worker is registered and a console log indicates SW registration was intentionally skipped.",
+        "When the parameter is absent, current service worker registration and auto-update behavior continues to work as it does now.",
+        "User-facing text remains in English (if any UI exposure is added for this mode)."
+      ],
+      "file_operations": [
+        {
+          "path": "frontend/index.html",
+          "operation": "modify",
+          "description": "Update the service worker registration script to check a query parameter (nosw=1) and skip registration when present, logging to the console that registration was intentionally bypassed; preserve existing registration and auto-update behavior when absent."
+        },
+        {
+          "path": "frontend/src/components/AuthDiagnosticsPanel.tsx",
+          "operation": "modify",
+          "description": "Include a small note in the diagnostics UI indicating whether the current page was loaded in no-service-worker mode (nosw=1) so publish verification behavior is obvious to the user."
+        }
+      ]
+    },
+    {
+      "id": "REQ-4",
+      "summary": "Ensure AuthProvider is mounted in App.tsx wrapping AppContent, with no useAuth() usage outside the provider, while preserving existing hash navigation and reconnect overlay behavior.",
+      "acceptanceCriteria": [
+        "App exports a top-level component that renders <AuthProvider><AppContent/></AuthProvider>, ensuring AuthContext is always mounted.",
+        "No useAuth() hook is invoked outside AuthProvider.",
+        "Existing hash-based routing targets and behaviors remain unchanged (roleSelection/signOn/agentMenu/adminMenu/takeEquipment/returnEquipment/reportIssue/manageEquipment).",
+        "Existing reconnecting/refresh overlay behavior continues to function both when logged out and signed in."
       ],
       "file_operations": [
         {
           "path": "frontend/src/App.tsx",
           "operation": "modify",
-          "description": "Harden the hash-based signed-in routing logic so that as soon as useAuth().auth becomes truthy, App enforces navigation to a valid signed-in hash route (defaulting to roleSelection when empty/invalid), keeps valid signed-in hashes intact, and always renders signed-in route content when auth is truthy; ensure the existing refresh/reconnecting overlay subscription + timeout/manual dismiss behavior remains unchanged across both logged-out and signed-in renders."
+          "description": "Confirm/adjust App.tsx so the exported top-level App renders <AuthProvider><AppContent/></AuthProvider> (since main.tsx cannot be edited), and ensure any useAuth() calls remain inside AppContent; keep existing hash-based view names and reconnecting overlay logic unchanged."
         }
       ]
     }

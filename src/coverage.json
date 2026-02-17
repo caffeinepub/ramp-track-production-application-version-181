@@ -1,27 +1,63 @@
 {
   "kind": "coverage_report",
   "version": "1.0",
-  "generatedAt": "2026-02-15T22:03:57.312Z",
+  "generatedAt": "2026-02-17T04:03:16.940Z",
   "sources": {
     "buildRequest": true,
     "implementationPlan": true
   },
   "requirements": {
-    "total": 2,
-    "implemented": 0,
+    "total": 4,
+    "implemented": 3,
     "items": [
       {
-        "id": "REQ-14",
-        "summary": "Update `frontend/src/main.tsx` so the React app is mounted with `AuthProvider` enabled at the application root (wrapping `<App />`), while preserving the existing `QueryClientProvider` and `InternetIdentityProvider` wrappers, so that `useAuth()` state updates (including successful login) can drive UI transitions beyond the login screen.",
-        "status": "missing",
+        "id": "REQ-1",
+        "summary": "Add a built-in “deployment diagnostics” indicator in the UI that clearly shows the current app build/version and basic runtime status (e.g., service worker status, online/offline), so the user can confirm whether production has updated after a publish attempt.",
+        "status": "implemented",
         "plannedFiles": [
-          "frontend/src/main.tsx"
+          "frontend/src/config/appBuild.ts",
+          "frontend/src/components/AuthDiagnosticsPanel.tsx",
+          "frontend/src/components/LoginScreen.tsx",
+          "frontend/src/components/OfflineIndicator.tsx"
         ],
-        "matchedFiles": []
+        "matchedFiles": [
+          "frontend/src/config/appBuild.ts",
+          "frontend/src/components/AuthDiagnosticsPanel.tsx",
+          "frontend/src/components/LoginScreen.tsx",
+          "frontend/src/components/OfflineIndicator.tsx"
+        ]
       },
       {
-        "id": "REQ-15",
-        "summary": "Ensure `frontend/src/App.tsx` reliably transitions away from `LoginScreen` as soon as `useAuth().auth` becomes truthy, by enforcing the existing hash-based navigation behavior that redirects authenticated users to a valid signed-in route (defaulting to `roleSelection`) when the current URL hash is empty or invalid, and by rendering the signed-in route content whenever `auth` is truthy.",
+        "id": "REQ-2",
+        "summary": "Add a user-invokable “force refresh / clear cached app” control reachable from the login screen that triggers the existing cache/service-worker reset behavior (unregister SW, clear Cache Storage, clear local/session storage as appropriate) and then reloads the app.",
+        "status": "implemented",
+        "plannedFiles": [
+          "frontend/src/lib/clearCachedApp.ts",
+          "frontend/src/components/LoginScreen.tsx",
+          "frontend/src/components/ErrorBoundary.tsx"
+        ],
+        "matchedFiles": [
+          "frontend/src/lib/clearCachedApp.ts",
+          "frontend/src/components/LoginScreen.tsx",
+          "frontend/src/components/ErrorBoundary.tsx"
+        ]
+      },
+      {
+        "id": "REQ-3",
+        "summary": "Make service worker registration in frontend/index.html conditional via a URL query parameter (e.g., ?nosw=1) to allow a publish verification path that bypasses service worker caching entirely.",
+        "status": "implemented",
+        "plannedFiles": [
+          "frontend/index.html",
+          "frontend/src/components/AuthDiagnosticsPanel.tsx"
+        ],
+        "matchedFiles": [
+          "frontend/index.html",
+          "frontend/src/components/AuthDiagnosticsPanel.tsx"
+        ]
+      },
+      {
+        "id": "REQ-4",
+        "summary": "Ensure frontend/src/App.tsx mounts authentication context inside App.tsx (since frontend/src/main.tsx cannot be edited) by wrapping the existing AppContent subtree with <AuthProvider>, and ensure all useAuth() calls remain inside the provider-mounted subtree without changing existing hash-based navigation and reconnecting overlay behavior.",
         "status": "missing",
         "plannedFiles": [
           "frontend/src/App.tsx"
@@ -32,8 +68,18 @@
   },
   "changedFiles": [
     "build-request.json",
+    "caffeine.lock.json",
     "feature_evidence.json",
+    "frontend-file-summaries.txt",
     "frontend-implementation-plan.json",
+    "frontend/index.html",
+    "frontend/src/components/AuthDiagnosticsPanel.tsx",
+    "frontend/src/components/ErrorBoundary.tsx",
+    "frontend/src/components/LoginScreen.tsx",
+    "frontend/src/components/OfflineIndicator.tsx",
+    "frontend/src/config.ts",
+    "frontend/src/config/appBuild.ts",
+    "frontend/src/lib/clearCachedApp.ts",
     "project_state.json",
     "scratch/component-selection.json",
     "spec.md",

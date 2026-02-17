@@ -1,4 +1,77 @@
 {
   "kind": "feature_evidence_report",
-  "features": []
+  "features": [
+    {
+      "featureId": "feature-add-a-built-in-deployment-diagnostics-indicator-in-the-ui-that-clearly-shows-the-current-app-build-version-and-basic-runtime-status-e-g-service-worker-status-online-offline-so-the-user-can-confirm-whether-production-has-updated-after-a-publish-attempt",
+      "featureTitle": "Add a built-in “deployment diagnostics” indicator in the UI that clearly shows the current app build/version and basic runtime status (e.g., service worker status, online/offline), so the user can confirm whether production has updated after a publish attempt.",
+      "files": [
+        "frontend/src/components/AuthDiagnosticsPanel.tsx",
+        "frontend/src/components/LoginScreen.tsx",
+        "frontend/src/components/OfflineIndicator.tsx",
+        "frontend/src/config/appBuild.ts"
+      ],
+      "components": [
+        "authorization@3.0.0",
+        "blob-storage@3.0.0",
+        "camera@1.0.0",
+        "qr-code@1.0.0",
+        "core-infrastructure@1.0.2",
+        "shadcn-ui@1.0.0",
+        "build-template-react@1.0.0",
+        "initial-app@1.0.0",
+        "github-export-icp-cli@1.0.0"
+      ],
+      "testIds": [
+        "REQ-1"
+      ],
+      "confidence": "high"
+    },
+    {
+      "featureId": "feature-add-a-user-invokable-force-refresh-clear-cached-app-control-reachable-from-the-login-screen-that-triggers-the-existing-cache-service-worker-reset-behavior-unregister-sw-clear-cache-storage-clear-local-session-storage-as-appropriate-and-then-reloads-the-app",
+      "featureTitle": "Add a user-invokable “force refresh / clear cached app” control reachable from the login screen that triggers the existing cache/service-worker reset behavior (unregister SW, clear Cache Storage, clear local/session storage as appropriate) and then reloads the app.",
+      "files": [
+        "frontend/src/components/ErrorBoundary.tsx",
+        "frontend/src/components/LoginScreen.tsx",
+        "frontend/src/lib/clearCachedApp.ts"
+      ],
+      "components": [
+        "authorization@3.0.0",
+        "blob-storage@3.0.0",
+        "camera@1.0.0",
+        "qr-code@1.0.0",
+        "core-infrastructure@1.0.2",
+        "shadcn-ui@1.0.0",
+        "build-template-react@1.0.0",
+        "initial-app@1.0.0",
+        "github-export-icp-cli@1.0.0"
+      ],
+      "testIds": [
+        "REQ-2"
+      ],
+      "confidence": "high"
+    },
+    {
+      "featureId": "feature-make-service-worker-registration-in-frontend-index-html-conditional-via-a-url-query-parameter-e-g-nosw-1-to-allow-a-publish-verification-path-that-bypasses-service-worker-caching-entirely",
+      "featureTitle": "Make service worker registration in frontend/index.html conditional via a URL query parameter (e.g., ?nosw=1) to allow a publish verification path that bypasses service worker caching entirely.",
+      "files": [
+        "frontend/index.html",
+        "frontend/src/components/AuthDiagnosticsPanel.tsx"
+      ],
+      "components": [
+        "authorization@3.0.0",
+        "blob-storage@3.0.0",
+        "camera@1.0.0",
+        "qr-code@1.0.0",
+        "core-infrastructure@1.0.2",
+        "shadcn-ui@1.0.0",
+        "build-template-react@1.0.0",
+        "initial-app@1.0.0",
+        "github-export-icp-cli@1.0.0"
+      ],
+      "testIds": [
+        "REQ-3"
+      ],
+      "confidence": "high"
+    }
+  ]
 }

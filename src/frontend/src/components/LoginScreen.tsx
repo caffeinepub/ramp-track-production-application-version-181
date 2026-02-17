@@ -3,11 +3,14 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { AlertCircle, X } from 'lucide-react';
+import { AlertCircle, X, Settings, Trash2 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import EquipmentQRScanner from './EquipmentQRScanner';
+import AuthDiagnosticsPanel from './AuthDiagnosticsPanel';
 import { validateCredentials, validateBadgeScan, getDemoCredentials } from '../data/userRoster';
 import { parseBadgeId } from '../lib/parseBadge';
+import { clearCachedApp } from '../lib/clearCachedApp';
+import { APP_BUILD_VERSION } from '../config/appBuild';
 
 export default function LoginScreen({ onLogin }: { onLogin?: () => void }) {
   const [username, setUsername] = useState('');
@@ -15,6 +18,7 @@ export default function LoginScreen({ onLogin }: { onLogin?: () => void }) {
   const [error, setError] = useState('');
   const [showScanner, setShowScanner] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [showDiagnostics, setShowDiagnostics] = useState(false);
 
   const { login, loginError, clearLoginError } = useAuth();
 
@@ -186,6 +190,10 @@ export default function LoginScreen({ onLogin }: { onLogin?: () => void }) {
     [password, login]
   );
 
+  const handleClearCache = async () => {
+    await clearCachedApp();
+  };
+
   if (showScanner && scannerMountedRef.current) {
     return <EquipmentQRScanner mode="login" onScan={handleBadgeScan} onClose={handleCloseScan} />;
   }
@@ -289,6 +297,45 @@ export default function LoginScreen({ onLogin }: { onLogin?: () => void }) {
           <p className="text-[#cbd5f5] text-xs text-center">
             Demo credentials: {demoCredentials.email} / {demoCredentials.password}
           </p>
+        </div>
+
+        {/* Troubleshooting Section */}
+        <div className="mt-6 pt-6 border-t border-white/20 space-y-3">
+          <div className="flex items-center justify-between">
+            <span className="text-slate-400 text-sm">Troubleshooting</span>
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={() => setShowDiagnostics(!showDiagnostics)}
+              className="text-slate-400 hover:text-white hover:bg-white/10"
+            >
+              <Settings className="h-4 w-4 mr-2" />
+              {showDiagnostics ? 'Hide' : 'Show'} Diagnostics
+            </Button>
+          </div>
+
+          {showDiagnostics && (
+            <div className="mt-3">
+              <AuthDiagnosticsPanel />
+            </div>
+          )}
+
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={handleClearCache}
+            className="w-full bg-red-900/20 hover:bg-red-900/40 text-red-300 border-red-700 hover:border-red-600"
+          >
+            <Trash2 className="h-4 w-4 mr-2" />
+            Clear Cached App & Reload
+          </Button>
+        </div>
+
+        {/* Build Version Footer */}
+        <div className="mt-4 text-center">
+          <p className="text-slate-500 text-xs">{APP_BUILD_VERSION}</p>
         </div>
       </div>
 

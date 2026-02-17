@@ -1,11 +1,12 @@
 # Specification
 
 ## Summary
-**Goal:** Fix the authentication/login flow so that after a successful sign-in the app reliably leaves `LoginScreen` and renders the appropriate signed-in screen.
+**Goal:** Make production publishes easier to verify and recover from caching/service-worker issues, while ensuring authentication context mounts reliably so users can get past the login flow.
 
 **Planned changes:**
-- Update `frontend/src/main.tsx` to mount the React app with `AuthProvider` enabled at the application root (wrapping `<App />`), while preserving the existing `QueryClientProvider` and `InternetIdentityProvider` wrappers.
-- Adjust `frontend/src/App.tsx` to reliably transition away from `LoginScreen` as soon as `useAuth().auth` becomes truthy by enforcing existing hash-based navigation (default to `#roleSelection` when the hash is empty/invalid, and honor valid signed-in routes when present).
-- Preserve the existing reconnecting/refresh overlay behavior (subscribe, timeout auto-dismiss, manual dismiss) for both logged-out and signed-in states.
+- Add an in-app “deployment diagnostics” indicator accessible from the login flow that shows a single-source app build/version plus basic runtime status (online/offline, and whether a service worker is controlling the page).
+- Add a login-screen troubleshooting action to force refresh by clearing cached app data (unregister service workers when supported, clear Cache Storage, clear local/session storage as appropriate) with a plain-English confirmation, then reload.
+- Make service worker registration conditional in `frontend/index.html` via a query parameter (e.g., `?nosw=1`) to bypass SW caching, with a console log when skipped.
+- Update `frontend/src/App.tsx` to mount authentication context by wrapping the existing `AppContent` subtree with `<AuthProvider>`, ensuring no `useAuth()` usage occurs outside the provider, without changing existing hash navigation routes or reconnecting/refresh overlay behavior.
 
-**User-visible outcome:** After a successful login (manual credentials or badge scan), the app navigates to a valid signed-in route (defaulting to Role Selection) and no longer gets stuck on the login screen.
+**User-visible outcome:** From the login screen, users can see the current build/version and runtime status, clear cached app data and reload to recover from stale deployments, optionally launch with `?nosw=1` to bypass service worker caching, and the app’s authentication flow mounts reliably to avoid login-blocking context issues.

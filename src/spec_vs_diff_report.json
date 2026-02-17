@@ -1,37 +1,62 @@
 {
   "kind": "spec_vs_diff_report",
   "version": "1.0",
-  "generatedAt": "2026-02-15T22:03:57.309Z",
-  "summary": "The diff does not implement the requested login-flow fixes. Only `project_state.json` was modified (documentation/metadata), with no changes to `frontend/src/main.tsx` or `frontend/src/App.tsx` to mount `AuthProvider` or enforce hash-based post-login navigation.",
+  "generatedAt": "2026-02-17T04:03:16.936Z",
+  "summary": "REQ-3 (conditional SW registration via ?nosw=1) appears implemented in frontend/index.html. A single build/version constant is added (appBuild.ts) and a diagnostics panel exists, but the diff snippet for LoginScreen is truncated so it’s not confirmable that the diagnostics indicator and the “clear cached app” control are actually reachable from the login screen as required. App/AuthProvider wrapping is indicated only via a file summary, not direct code evidence. Several unrelated features/files appear changed/added beyond the requested hardening tasks.",
   "missing_requirements": [
     {
-      "id": "REQ-14",
-      "requirement": "Update `frontend/src/main.tsx` so the React app is mounted with `AuthProvider` enabled at the application root (wrapping `<App />`), while preserving the existing `QueryClientProvider` and `InternetIdentityProvider` wrappers.",
-      "reason": "No diff evidence of any changes to `frontend/src/main.tsx` or any React root mounting code; only `project_state.json` was modified.",
+      "id": "REQ-1",
+      "requirement": "A visible app version/build label rendered somewhere accessible from the login flow, including SW controlling status and online/offline, with version derived from a single constant.",
+      "reason": "While a diagnostics panel component exists and uses a single version constant, the provided LoginScreen diff is truncated before showing any UI that exposes this diagnostics/version label from the login flow. Therefore accessibility from the login flow cannot be verified from the diff summary.",
       "evidence": [
-        "project_state.json"
+        "frontend/src/components/AuthDiagnosticsPanel.tsx",
+        "frontend/src/components/LoginScreen.tsx (truncated)",
+        "frontend/src/config/appBuild.ts"
       ]
     },
     {
-      "id": "REQ-15",
-      "requirement": "Ensure `frontend/src/App.tsx` reliably transitions away from `LoginScreen` as soon as `useAuth().auth` becomes truthy by enforcing hash-based navigation to a valid signed-in route (default `roleSelection`) and rendering signed-in route content whenever `auth` is truthy, while preserving reconnecting/refresh overlay behavior.",
-      "reason": "No diff evidence of any changes to `frontend/src/App.tsx` or routing/hash logic; only `project_state.json` was modified.",
+      "id": "REQ-2",
+      "requirement": "A clearly labeled, user-invokable “force refresh / clear cached app and reload” control reachable from the login screen, with plain-English confirmation, that unregisters SWs, clears Cache Storage, clears storage, and reloads.",
+      "reason": "The cache-clearing implementation exists (with confirmation), but the LoginScreen diff is truncated before any evidence of a clearly labeled login-screen control invoking it. Reachability from the login screen cannot be verified from the diff summary.",
       "evidence": [
-        "project_state.json"
+        "frontend/src/lib/clearCachedApp.ts",
+        "frontend/src/components/LoginScreen.tsx (truncated)"
       ]
     }
   ],
   "hallucinated_features": [
     {
-      "description": "Updated/expanded project metadata describing additional UX/admin/operator capabilities and stabilization items (e.g., AuthProvider mounting, session persistence keys, isAuthReady deadlocks, etc.).",
-      "reason": "BuildRequest only asks for concrete code changes in `frontend/src/main.tsx` and `frontend/src/App.tsx` to fix the login transition. Modifying `project_state.json` is not requested and does not itself implement the required behavior.",
+      "description": "New global offline indicator banner component.",
+      "reason": "REQs ask for diagnostics display including online/offline, but do not request adding a standalone fixed-position offline banner component.",
       "evidence": [
-        "project_state.json"
+        "frontend/src/components/OfflineIndicator.tsx"
+      ]
+    },
+    {
+      "description": "Enhanced ErrorBoundary UI with clear-cache button and diagnostics/details toggling.",
+      "reason": "REQ-2 specifically requires the clear-cache control be reachable from the login screen; changes to the error boundary UI are not requested.",
+      "evidence": [
+        "frontend/src/components/ErrorBoundary.tsx"
+      ]
+    },
+    {
+      "description": "Large set of additional feature changes across app pages/hooks/manifest/service worker described in frontend-file-summaries.txt (React Query hooks overhaul, multiple page rewrites, manifest/sw.js changes, demo login handler).",
+      "reason": "BuildRequest scope is limited to diagnostics UI, login-screen cache clear control, conditional SW registration, and AuthProvider mounting in App.tsx; these other changes are not requested and may violate the 'do not fix platform publish infra' non-goal by introducing unrelated modifications.",
+      "evidence": [
+        "frontend-file-summaries.txt (truncated)"
       ]
     }
   ],
-  "confidence": 0.86,
+  "confidence": 0.62,
   "changed_files": [
+    "frontend-file-summaries.txt",
+    "frontend/index.html",
+    "frontend/src/components/AuthDiagnosticsPanel.tsx",
+    "frontend/src/components/ErrorBoundary.tsx",
+    "frontend/src/components/LoginScreen.tsx",
+    "frontend/src/components/OfflineIndicator.tsx",
+    "frontend/src/config/appBuild.ts",
+    "frontend/src/lib/clearCachedApp.ts",
     "project_state.json"
   ]
 }

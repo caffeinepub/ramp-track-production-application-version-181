@@ -1,6 +1,7 @@
 import React, { Component, ErrorInfo, ReactNode } from 'react';
 import { Button } from '@/components/ui/button';
 import { AlertCircle } from 'lucide-react';
+import { clearCachedApp } from '../lib/clearCachedApp';
 
 interface Props {
   children: ReactNode;
@@ -13,7 +14,7 @@ interface State {
   showDiagnostics: boolean;
 }
 
-export default class ErrorBoundary extends Component<Props, State> {
+class ErrorBoundary extends Component<Props, State> {
   constructor(props: Props) {
     super(props);
     this.state = {
@@ -25,52 +26,21 @@ export default class ErrorBoundary extends Component<Props, State> {
   }
 
   static getDerivedStateFromError(error: Error): Partial<State> {
-    return { hasError: true };
+    return { hasError: true, error };
   }
 
   componentDidCatch(error: Error, errorInfo: ErrorInfo) {
     console.error('[ErrorBoundary] Caught error:', error);
     console.error('[ErrorBoundary] Error info:', errorInfo);
-    
-    this.setState({
-      error,
-      errorInfo,
-    });
+    this.setState({ errorInfo });
   }
 
   handleReload = () => {
     window.location.reload();
   };
 
-  handleClearCache = () => {
-    // Clear localStorage
-    localStorage.clear();
-    
-    // Clear sessionStorage
-    sessionStorage.clear();
-    
-    // Unregister service workers
-    if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.getRegistrations().then((registrations) => {
-        registrations.forEach((registration) => {
-          registration.unregister();
-        });
-      });
-    }
-    
-    // Clear cache storage
-    if ('caches' in window) {
-      caches.keys().then((names) => {
-        names.forEach((name) => {
-          caches.delete(name);
-        });
-      });
-    }
-    
-    // Reload after clearing
-    setTimeout(() => {
-      window.location.reload();
-    }, 500);
+  handleClearCache = async () => {
+    await clearCachedApp();
   };
 
   toggleDiagnostics = () => {
@@ -81,73 +51,74 @@ export default class ErrorBoundary extends Component<Props, State> {
     if (this.state.hasError) {
       return (
         <div
-          className="fixed inset-0 flex items-center justify-center p-6"
+          className="min-h-screen flex items-center justify-center p-6"
           style={{
             backgroundImage: 'url(/assets/HomescreenBackground.jpg)',
             backgroundSize: 'cover',
             backgroundPosition: 'center',
-            backgroundRepeat: 'no-repeat',
           }}
         >
-          <div
-            className="w-full max-w-2xl rounded-2xl p-8 shadow-2xl"
-            style={{
-              background: 'rgba(15, 23, 42, 0.95)',
-            }}
-          >
+          <div className="w-full max-w-2xl bg-slate-900/95 rounded-2xl p-8 shadow-2xl border border-slate-700">
             <div className="flex items-start gap-4 mb-6">
-              <div className="shrink-0">
+              <div className="flex-shrink-0">
                 <AlertCircle className="h-12 w-12 text-red-400" />
               </div>
               <div className="flex-1">
-                <h1 className="text-3xl font-bold text-white mb-2">
-                  Something went wrong
-                </h1>
-                <p className="text-white/80 text-lg">
-                  The application encountered an unexpected error. Please reload the page to continue.
+                <h1 className="text-2xl font-bold text-white mb-2">Something went wrong</h1>
+                <p className="text-slate-300 mb-4">
+                  The application encountered an unexpected error. Try reloading the page or clearing the cache.
                 </p>
+
+                <div className="flex flex-wrap gap-3 mb-6">
+                  <Button onClick={this.handleReload} className="bg-blue-600 hover:bg-blue-700">
+                    Reload Page
+                  </Button>
+                  <Button
+                    onClick={this.handleClearCache}
+                    variant="outline"
+                    className="bg-red-900/20 hover:bg-red-900/40 text-red-300 border-red-700"
+                  >
+                    Clear Cache & Reload
+                  </Button>
+                  <Button
+                    onClick={this.toggleDiagnostics}
+                    variant="ghost"
+                    className="text-slate-400 hover:text-white"
+                  >
+                    {this.state.showDiagnostics ? 'Hide' : 'Show'} Details
+                  </Button>
+                </div>
+
+                {this.state.showDiagnostics && (
+                  <div className="bg-slate-950/50 rounded-lg p-4 border border-slate-800">
+                    <h3 className="text-sm font-semibold text-slate-300 mb-2">Error Details</h3>
+                    <div className="space-y-2">
+                      <div>
+                        <div className="text-xs text-slate-500 mb-1">Error Message:</div>
+                        <pre className="text-xs text-red-300 font-mono overflow-x-auto">
+                          {this.state.error?.message || 'Unknown error'}
+                        </pre>
+                      </div>
+                      {this.state.error?.stack && (
+                        <div>
+                          <div className="text-xs text-slate-500 mb-1">Stack Trace:</div>
+                          <pre className="text-xs text-slate-400 font-mono overflow-x-auto max-h-48 overflow-y-auto">
+                            {this.state.error.stack}
+                          </pre>
+                        </div>
+                      )}
+                      {this.state.errorInfo?.componentStack && (
+                        <div>
+                          <div className="text-xs text-slate-500 mb-1">Component Stack:</div>
+                          <pre className="text-xs text-slate-400 font-mono overflow-x-auto max-h-48 overflow-y-auto">
+                            {this.state.errorInfo.componentStack}
+                          </pre>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
               </div>
-            </div>
-
-            {this.state.showDiagnostics && this.state.error && (
-              <div className="mb-6 p-4 bg-black/40 rounded-lg border border-white/10">
-                <h3 className="text-white font-semibold mb-2">Error Details:</h3>
-                <pre className="text-red-300 text-xs overflow-auto max-h-48">
-                  {this.state.error.toString()}
-                  {this.state.errorInfo?.componentStack}
-                </pre>
-              </div>
-            )}
-
-            <div className="space-y-3">
-              <Button
-                onClick={this.handleReload}
-                className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-6 text-lg"
-              >
-                Reload Application
-              </Button>
-
-              <Button
-                onClick={this.handleClearCache}
-                variant="outline"
-                className="w-full bg-white/10 hover:bg-white/20 text-white border-white/30 font-semibold py-6 text-lg"
-              >
-                Clear Cache & Reload
-              </Button>
-
-              <Button
-                onClick={this.toggleDiagnostics}
-                variant="ghost"
-                className="w-full text-white/70 hover:text-white hover:bg-white/10"
-              >
-                {this.state.showDiagnostics ? 'Hide' : 'Show'} Diagnostics
-              </Button>
-            </div>
-
-            <div className="mt-6 pt-6 border-t border-white/20">
-              <p className="text-white/60 text-sm text-center">
-                If the problem persists, please contact support.
-              </p>
             </div>
           </div>
         </div>
@@ -158,3 +129,4 @@ export default class ErrorBoundary extends Component<Props, State> {
   }
 }
 
+export default ErrorBoundary;
