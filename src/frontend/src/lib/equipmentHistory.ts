@@ -1,6 +1,6 @@
 // In-memory equipment event history system
 
-export type EventType = 'CHECK_OUT' | 'CHECK_IN' | 'REPORT_ISSUE';
+export type EventType = "CHECK_OUT" | "CHECK_IN" | "REPORT_ISSUE";
 
 export interface EquipmentEvent {
   id: string;
@@ -27,8 +27,11 @@ export function logEvent(event: EquipmentEvent): void {
  */
 export function getHistoryForEquipment(equipmentId: string): EquipmentEvent[] {
   return eventHistory
-    .filter(event => event.equipmentId === equipmentId)
-    .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+    .filter((event) => event.equipmentId === equipmentId)
+    .sort(
+      (a, b) =>
+        new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime(),
+    );
 }
 
 /**
@@ -37,7 +40,10 @@ export function getHistoryForEquipment(equipmentId: string): EquipmentEvent[] {
 export function getAllHistory(): EquipmentEvent[] {
   return eventHistory
     .slice()
-    .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+    .sort(
+      (a, b) =>
+        new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime(),
+    );
 }
 
 /**

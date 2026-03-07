@@ -1,0 +1,111 @@
+
+### Option 2: Cloud Storage
+Upload to Google Drive, Dropbox, or similar:
+1. Upload APK file
+2. Set sharing to "Anyone with the link"
+3. Copy public download link
+4. Share with users
+
+### Option 3: Your Own Server
+Host on your web server:
+1. Upload APK to your server
+2. Ensure MIME type is set: `application/vnd.android.package-archive`
+3. Create download page with link
+4. Share URL with users
+
+## Installation Instructions for Users
+
+### Step 1: Download APK
+1. On your Android device, open the download link in Chrome or your browser
+2. Tap "Download" or the download icon
+3. Wait for download to complete
+
+### Step 2: Enable Installation
+1. Open **Settings** → **Security** (or **Apps**)
+2. Find **Install unknown apps** or **Unknown sources**
+3. Select your browser (Chrome, Firefox, etc.)
+4. Toggle **Allow from this source** to ON
+
+### Step 3: Install App
+1. Open your **Downloads** folder or notification
+2. Tap the `ramp-track-v1.1.0.apk` file
+3. Tap **Install**
+4. Wait for installation to complete
+5. Tap **Open** to launch Ramp Track
+
+### Step 4: Grant Permissions
+When you first use features, grant permissions:
+- **Camera**: For QR scanning and photo capture
+- **Location**: For GPS tracking
+- **Storage**: For saving photos
+
+## Demo Login Credentials
+
+Test the app with these credentials:
+- **Email**: operator@demo.com
+- **Password**: demo123
+
+## Features Included in APK
+
+✅ **Splash Screen** with HomescreenBackground.jpg  
+✅ **Demo Login** (operator@demo.com / demo123)  
+✅ **QR Code Scanner** for equipment tracking  
+✅ **GPS Location Capture** for assignments  
+✅ **Photo Capture** for issue reporting  
+✅ **Offline Support** with service worker caching  
+✅ **Automatic Updates** (v1.1.0) via PWA technology  
+✅ **Full Equipment Workflow** (check-in, check-out, report issues)  
+
+## Automatic Updates
+
+The APK automatically checks for updates:
+- No need to reinstall APK for app updates
+- Service worker downloads new versions in background
+- Users see update notification when available
+- Tap "Update" to get latest version instantly
+
+**Note**: You only need to reinstall the APK if there are changes to:
+- App permissions
+- Native Android features
+- App icon or name
+- TWA configuration
+
+## Troubleshooting
+
+### "App not installed" Error
+- Enable "Install unknown apps" for your browser
+- Ensure you have enough storage space
+- Try downloading again (file may be corrupted)
+
+### "For security, your phone is not allowed to install unknown apps"
+- Go to Settings → Security → Unknown sources
+- Enable for your browser or file manager
+
+### App Won't Open
+- Check you have Android 8.0 or higher
+- Ensure internet connection (first launch requires network)
+- Try clearing app data: Settings → Apps → Ramp Track → Clear data
+
+### Camera/GPS Not Working
+- Grant permissions: Settings → Apps → Ramp Track → Permissions
+- Enable Camera and Location
+
+## Support
+
+For issues or questions:
+1. Check `APK_BUILD_INSTRUCTIONS.md` troubleshooting section
+2. Verify your Android version is 8.0+
+3. Test internet connection
+4. Try reinstalling the app
+
+## Version Information
+
+- **Current Version**: v1.1.0
+- **Min Android**: 8.0 (API 26)
+- **Target Android**: 14 (API 34)
+- **Package Name**: com.ramptrack.app
+- **App Name**: Ramp Track
+
+---
+
+**Security Note**: Only download the APK from trusted sources. The official APK is signed with a unique certificate. Installing from unofficial sources may pose security risks.

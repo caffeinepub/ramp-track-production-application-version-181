@@ -1,7 +1,7 @@
-import React, { Component, ErrorInfo, ReactNode } from 'react';
-import { Button } from '@/components/ui/button';
-import { AlertCircle } from 'lucide-react';
-import { clearCachedApp } from '../lib/clearCachedApp';
+import { Button } from "@/components/ui/button";
+import { AlertCircle } from "lucide-react";
+import React, { Component, type ErrorInfo, type ReactNode } from "react";
+import { clearCachedApp } from "../lib/clearCachedApp";
 
 interface Props {
   children: ReactNode;
@@ -30,8 +30,8 @@ class ErrorBoundary extends Component<Props, State> {
   }
 
   componentDidCatch(error: Error, errorInfo: ErrorInfo) {
-    console.error('[ErrorBoundary] Caught error:', error);
-    console.error('[ErrorBoundary] Error info:', errorInfo);
+    console.error("[ErrorBoundary] Caught error:", error);
+    console.error("[ErrorBoundary] Error info:", errorInfo);
     this.setState({ errorInfo });
   }
 
@@ -53,9 +53,9 @@ class ErrorBoundary extends Component<Props, State> {
         <div
           className="min-h-screen flex items-center justify-center p-6"
           style={{
-            backgroundImage: 'url(/assets/HomescreenBackground.jpg)',
-            backgroundSize: 'cover',
-            backgroundPosition: 'center',
+            backgroundImage: "url(/assets/HomescreenBackground.jpg)",
+            backgroundSize: "cover",
+            backgroundPosition: "center",
           }}
         >
           <div className="w-full max-w-2xl bg-slate-900/95 rounded-2xl p-8 shadow-2xl border border-slate-700">
@@ -64,13 +64,19 @@ class ErrorBoundary extends Component<Props, State> {
                 <AlertCircle className="h-12 w-12 text-red-400" />
               </div>
               <div className="flex-1">
-                <h1 className="text-2xl font-bold text-white mb-2">Something went wrong</h1>
+                <h1 className="text-2xl font-bold text-white mb-2">
+                  Something went wrong
+                </h1>
                 <p className="text-slate-300 mb-4">
-                  The application encountered an unexpected error. Try reloading the page or clearing the cache.
+                  The application encountered an unexpected error. Try reloading
+                  the page or clearing the cache.
                 </p>
 
                 <div className="flex flex-wrap gap-3 mb-6">
-                  <Button onClick={this.handleReload} className="bg-blue-600 hover:bg-blue-700">
+                  <Button
+                    onClick={this.handleReload}
+                    className="bg-blue-600 hover:bg-blue-700"
+                  >
                     Reload Page
                   </Button>
                   <Button
@@ -85,23 +91,29 @@ class ErrorBoundary extends Component<Props, State> {
                     variant="ghost"
                     className="text-slate-400 hover:text-white"
                   >
-                    {this.state.showDiagnostics ? 'Hide' : 'Show'} Details
+                    {this.state.showDiagnostics ? "Hide" : "Show"} Details
                   </Button>
                 </div>
 
                 {this.state.showDiagnostics && (
                   <div className="bg-slate-950/50 rounded-lg p-4 border border-slate-800">
-                    <h3 className="text-sm font-semibold text-slate-300 mb-2">Error Details</h3>
+                    <h3 className="text-sm font-semibold text-slate-300 mb-2">
+                      Error Details
+                    </h3>
                     <div className="space-y-2">
                       <div>
-                        <div className="text-xs text-slate-500 mb-1">Error Message:</div>
+                        <div className="text-xs text-slate-500 mb-1">
+                          Error Message:
+                        </div>
                         <pre className="text-xs text-red-300 font-mono overflow-x-auto">
-                          {this.state.error?.message || 'Unknown error'}
+                          {this.state.error?.message || "Unknown error"}
                         </pre>
                       </div>
                       {this.state.error?.stack && (
                         <div>
-                          <div className="text-xs text-slate-500 mb-1">Stack Trace:</div>
+                          <div className="text-xs text-slate-500 mb-1">
+                            Stack Trace:
+                          </div>
                           <pre className="text-xs text-slate-400 font-mono overflow-x-auto max-h-48 overflow-y-auto">
                             {this.state.error.stack}
                           </pre>
@@ -109,7 +121,9 @@ class ErrorBoundary extends Component<Props, State> {
                       )}
                       {this.state.errorInfo?.componentStack && (
                         <div>
-                          <div className="text-xs text-slate-500 mb-1">Component Stack:</div>
+                          <div className="text-xs text-slate-500 mb-1">
+                            Component Stack:
+                          </div>
                           <pre className="text-xs text-slate-400 font-mono overflow-x-auto max-h-48 overflow-y-auto">
                             {this.state.errorInfo.componentStack}
                           </pre>

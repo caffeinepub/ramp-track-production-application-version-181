@@ -1,16 +1,17 @@
-import { useState, useEffect } from 'react';
-import { AuthProvider, useAuth } from './contexts/AuthContext';
-import ReconnectingOverlay from './components/ReconnectingOverlay';
-import LoginScreen from './components/LoginScreen';
-import SignOnScreen from './components/SignOnScreen';
-import RoleSelectionScreen from './components/RoleSelectionScreen';
-import OperatorHomeScreen from './pages/OperatorHomeScreen';
-import AdminDashboard from './pages/AdminDashboard';
-import CheckOutScreen from './pages/CheckOutScreen';
-import CheckInScreen from './pages/CheckInScreen';
-import ReportIssueScreen from './pages/ReportIssueScreen';
-import ManageEquipmentScreen from './pages/ManageEquipmentScreen';
-import { subscribeToRefreshState } from './lib/apiClient';
+import type React from "react";
+import { useEffect, useState } from "react";
+import LoginScreen from "./components/LoginScreen";
+import ReconnectingOverlay from "./components/ReconnectingOverlay";
+import RoleSelectionScreen from "./components/RoleSelectionScreen";
+import SignOnScreen from "./components/SignOnScreen";
+import { AuthProvider, useAuth } from "./contexts/AuthContext";
+import { subscribeToRefreshState } from "./lib/apiClient";
+import AdminDashboard from "./pages/AdminDashboard";
+import CheckInScreen from "./pages/CheckInScreen";
+import CheckOutScreen from "./pages/CheckOutScreen";
+import ManageEquipmentScreen from "./pages/ManageEquipmentScreen";
+import OperatorHomeScreen from "./pages/OperatorHomeScreen";
+import ReportIssueScreen from "./pages/ReportIssueScreen";
 
 export interface CurrentUser {
   username: string;
@@ -18,13 +19,32 @@ export interface CurrentUser {
   displayName?: string;
 }
 
-type ViewType = 'roleSelection' | 'signOn' | 'agentMenu' | 'adminMenu' | 'takeEquipment' | 'returnEquipment' | 'reportIssue' | 'manageEquipment';
+type ViewType =
+  | "roleSelection"
+  | "signOn"
+  | "agentMenu"
+  | "adminMenu"
+  | "takeEquipment"
+  | "returnEquipment"
+  | "reportIssue"
+  | "manageEquipment";
 
 // Helper to get current view from hash
 function getViewFromHash(): ViewType {
   const hash = window.location.hash.slice(1); // Remove '#'
-  const validViews: ViewType[] = ['roleSelection', 'signOn', 'agentMenu', 'adminMenu', 'takeEquipment', 'returnEquipment', 'reportIssue', 'manageEquipment'];
-  return validViews.includes(hash as ViewType) ? (hash as ViewType) : 'roleSelection';
+  const validViews: ViewType[] = [
+    "roleSelection",
+    "signOn",
+    "agentMenu",
+    "adminMenu",
+    "takeEquipment",
+    "returnEquipment",
+    "reportIssue",
+    "manageEquipment",
+  ];
+  return validViews.includes(hash as ViewType)
+    ? (hash as ViewType)
+    : "roleSelection";
 }
 
 // Helper to navigate to a view
@@ -35,37 +55,53 @@ function navigateTo(view: ViewType) {
 // Inner component that uses useAuth() - must be inside AuthProvider
 function AppContent() {
   const { auth, isRefreshing } = useAuth();
-  
+
   const [apiClientRefreshing, setApiClientRefreshing] = useState(false);
   const [overlayDismissed, setOverlayDismissed] = useState(false);
   const [currentView, setCurrentView] = useState<ViewType>(getViewFromHash());
 
   // Convert auth to CurrentUser format for backward compatibility with child components
-  const legacyCurrentUser: CurrentUser | null = auth ? {
-    username: auth.user,
-    roles: [auth.role],
-    displayName: auth.name,
-  } : null;
+  const legacyCurrentUser: CurrentUser | null = auth
+    ? {
+        username: auth.user,
+        roles: [auth.role],
+        displayName: auth.name,
+      }
+    : null;
 
   // Subscribe to hash changes
   useEffect(() => {
     const handleHashChange = () => {
       setCurrentView(getViewFromHash());
     };
-    window.addEventListener('hashchange', handleHashChange);
-    return () => window.removeEventListener('hashchange', handleHashChange);
+    window.addEventListener("hashchange", handleHashChange);
+    return () => window.removeEventListener("hashchange", handleHashChange);
   }, []);
 
   // Navigate to roleSelection when auth becomes truthy and hash is empty or invalid
   useEffect(() => {
     if (auth) {
       const currentHash = window.location.hash.slice(1);
-      const validSignedInViews: ViewType[] = ['roleSelection', 'signOn', 'agentMenu', 'adminMenu', 'takeEquipment', 'returnEquipment', 'reportIssue', 'manageEquipment'];
-      
+      const validSignedInViews: ViewType[] = [
+        "roleSelection",
+        "signOn",
+        "agentMenu",
+        "adminMenu",
+        "takeEquipment",
+        "returnEquipment",
+        "reportIssue",
+        "manageEquipment",
+      ];
+
       // If hash is empty or not a valid signed-in view, navigate to roleSelection
-      if (!currentHash || !validSignedInViews.includes(currentHash as ViewType)) {
-        console.log('[App] Auth became truthy with invalid/empty hash, navigating to roleSelection');
-        navigateTo('roleSelection');
+      if (
+        !currentHash ||
+        !validSignedInViews.includes(currentHash as ViewType)
+      ) {
+        console.log(
+          "[App] Auth became truthy with invalid/empty hash, navigating to roleSelection",
+        );
+        navigateTo("roleSelection");
       }
     }
   }, [auth]);
@@ -84,39 +120,44 @@ function AppContent() {
   // Auto-dismiss overlay after timeout
   useEffect(() => {
     const showOverlay = isRefreshing || apiClientRefreshing;
-    
+
     if (showOverlay) {
       setOverlayDismissed(false);
-      
+
       const timer = setTimeout(() => {
-        console.log('[App] Auto-dismissing overlay after timeout');
+        console.log("[App] Auto-dismissing overlay after timeout");
         setOverlayDismissed(true);
       }, 10000);
-      
+
       return () => clearTimeout(timer);
-    } else {
-      setOverlayDismissed(false);
     }
+    setOverlayDismissed(false);
   }, [isRefreshing, apiClientRefreshing]);
 
   // Define overlay state and handlers
-  const showReconnectingOverlay = (isRefreshing || apiClientRefreshing) && !overlayDismissed;
+  const showReconnectingOverlay =
+    (isRefreshing || apiClientRefreshing) && !overlayDismissed;
 
   const handleOverlayDismiss = () => {
-    console.log('[App] User dismissed overlay');
+    console.log("[App] User dismissed overlay");
     setOverlayDismissed(true);
   };
 
   // Render decision: derive directly from auth
-  console.log('[App] Rendering - auth:', auth ? `${auth.name} (${auth.role})` : 'none', 'currentView:', currentView);
+  console.log(
+    "[App] Rendering - auth:",
+    auth ? `${auth.name} (${auth.role})` : "none",
+    "currentView:",
+    currentView,
+  );
 
   // If not authenticated, render LoginScreen
   if (!auth) {
     return (
       <>
         <LoginScreen onLogin={() => {}} />
-        <ReconnectingOverlay 
-          isVisible={showReconnectingOverlay} 
+        <ReconnectingOverlay
+          isVisible={showReconnectingOverlay}
           onDismiss={handleOverlayDismiss}
         />
       </>
@@ -124,86 +165,88 @@ function AppContent() {
   }
 
   // Authenticated: render signed-in UI based on currentView (derived from hash)
-  let content;
+  let content: React.ReactNode;
   switch (currentView) {
-    case 'roleSelection':
+    case "roleSelection":
       content = (
         <RoleSelectionScreen
           currentUser={legacyCurrentUser}
-          onContinueAsAgent={() => navigateTo('agentMenu')}
-          onContinueToAdmin={() => navigateTo('adminMenu')}
-          onBack={() => navigateTo('roleSelection')}
+          onContinueAsAgent={() => navigateTo("agentMenu")}
+          onContinueToAdmin={() => navigateTo("adminMenu")}
+          onBack={() => navigateTo("roleSelection")}
         />
       );
       break;
 
-    case 'signOn':
+    case "signOn":
       content = (
         <SignOnScreen
           currentUser={legacyCurrentUser}
-          onAgentLogin={() => navigateTo('agentMenu')}
-          onAdminLogin={() => navigateTo('adminMenu')}
-          onBack={() => navigateTo('roleSelection')}
+          onAgentLogin={() => navigateTo("agentMenu")}
+          onAdminLogin={() => navigateTo("adminMenu")}
+          onBack={() => navigateTo("roleSelection")}
         />
       );
       break;
 
-    case 'agentMenu':
+    case "agentMenu":
       content = (
         <OperatorHomeScreen
-          onTakeEquipment={() => navigateTo('takeEquipment')}
-          onReturnEquipment={() => navigateTo('returnEquipment')}
-          onReportIssue={() => navigateTo('reportIssue')}
+          onTakeEquipment={() => navigateTo("takeEquipment")}
+          onReturnEquipment={() => navigateTo("returnEquipment")}
+          onReportIssue={() => navigateTo("reportIssue")}
           onBack={() => {
-            if (auth?.role === 'manager' || auth?.role === 'admin') {
-              navigateTo('roleSelection');
+            if (auth?.role === "manager" || auth?.role === "admin") {
+              navigateTo("roleSelection");
             } else {
-              navigateTo('signOn');
+              navigateTo("signOn");
             }
           }}
         />
       );
       break;
 
-    case 'takeEquipment':
-      content = <CheckOutScreen onBack={() => navigateTo('agentMenu')} />;
+    case "takeEquipment":
+      content = <CheckOutScreen onBack={() => navigateTo("agentMenu")} />;
       break;
 
-    case 'returnEquipment':
-      content = <CheckInScreen onBack={() => navigateTo('agentMenu')} />;
+    case "returnEquipment":
+      content = <CheckInScreen onBack={() => navigateTo("agentMenu")} />;
       break;
 
-    case 'reportIssue':
-      content = <ReportIssueScreen onBack={() => navigateTo('agentMenu')} />;
+    case "reportIssue":
+      content = <ReportIssueScreen onBack={() => navigateTo("agentMenu")} />;
       break;
 
-    case 'adminMenu':
+    case "adminMenu":
       content = (
-        <AdminDashboard 
+        <AdminDashboard
           onBack={() => {
-            if (auth?.role === 'manager' || auth?.role === 'admin') {
-              navigateTo('roleSelection');
+            if (auth?.role === "manager" || auth?.role === "admin") {
+              navigateTo("roleSelection");
             } else {
-              navigateTo('signOn');
+              navigateTo("signOn");
             }
           }}
-          onManageEquipment={() => navigateTo('manageEquipment')}
+          onManageEquipment={() => navigateTo("manageEquipment")}
         />
       );
       break;
 
-    case 'manageEquipment':
-      content = <ManageEquipmentScreen onBack={() => navigateTo('adminMenu')} />;
+    case "manageEquipment":
+      content = (
+        <ManageEquipmentScreen onBack={() => navigateTo("adminMenu")} />
+      );
       break;
 
     default:
-      console.warn('[App] Unexpected currentView state:', currentView);
+      console.warn("[App] Unexpected currentView state:", currentView);
       content = (
         <RoleSelectionScreen
           currentUser={legacyCurrentUser}
-          onContinueAsAgent={() => navigateTo('agentMenu')}
-          onContinueToAdmin={() => navigateTo('adminMenu')}
-          onBack={() => navigateTo('roleSelection')}
+          onContinueAsAgent={() => navigateTo("agentMenu")}
+          onContinueToAdmin={() => navigateTo("adminMenu")}
+          onBack={() => navigateTo("roleSelection")}
         />
       );
       break;
@@ -212,8 +255,8 @@ function AppContent() {
   return (
     <>
       {content}
-      <ReconnectingOverlay 
-        isVisible={showReconnectingOverlay} 
+      <ReconnectingOverlay
+        isVisible={showReconnectingOverlay}
         onDismiss={handleOverlayDismiss}
       />
     </>

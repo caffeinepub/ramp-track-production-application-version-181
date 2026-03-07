@@ -1,18 +1,33 @@
-import { useState, useRef, useCallback } from 'react';
-import { Button } from '../components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
-import { Label } from '../components/ui/label';
-import { Alert, AlertDescription } from '../components/ui/alert';
-import EquipmentQRScanner from '../components/EquipmentQRScanner';
-import { useCreateAssignment, useUpdateEquipment, useLogActivity, useGetCallerUserProfile, useGetEquipment } from '../hooks/useQueries';
-import { Loader2, CheckCircle2, AlertCircle, MapPin } from 'lucide-react';
-import { findById, updateEquipmentStatus, normalizeEquipmentId } from '../lib/equipmentRegistry';
-import { logEvent } from '../lib/equipmentHistory';
-import { appendAuditEvent } from '../lib/auditLog';
-import { getAutoLocation } from '../lib/autoGateLocator';
-import { ensureUserContext } from '../lib/ensureUserContext';
-import { useAuth } from '../contexts/AuthContext';
-import { toast } from 'sonner';
+import { AlertCircle, CheckCircle2, Loader2, MapPin } from "lucide-react";
+import { useCallback, useRef, useState } from "react";
+import { toast } from "sonner";
+import EquipmentQRScanner from "../components/EquipmentQRScanner";
+import { Alert, AlertDescription } from "../components/ui/alert";
+import { Button } from "../components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from "../components/ui/card";
+import { Label } from "../components/ui/label";
+import { useAuth } from "../contexts/AuthContext";
+import {
+  useCreateAssignment,
+  useGetCallerUserProfile,
+  useGetEquipment,
+  useLogActivity,
+  useUpdateEquipment,
+} from "../hooks/useQueries";
+import { appendAuditEvent } from "../lib/auditLog";
+import { getAutoLocation } from "../lib/autoGateLocator";
+import { ensureUserContext } from "../lib/ensureUserContext";
+import { logEvent } from "../lib/equipmentHistory";
+import {
+  findById,
+  normalizeEquipmentId,
+  updateEquipmentStatus,
+} from "../lib/equipmentRegistry";
 
 interface CheckInScreenProps {
   onBack: () => void;
@@ -20,27 +35,31 @@ interface CheckInScreenProps {
 
 // Helper to format equipment type for display
 const formatEquipmentType = (type: string): string => {
-  if (type === 'ELECTRIC_TUG') return 'ELECTRIC TUG';
-  if (type === 'TUG') return 'TUG';
-  return type.replace('_', ' ');
+  if (type === "ELECTRIC_TUG") return "ELECTRIC TUG";
+  if (type === "TUG") return "TUG";
+  return type.replace("_", " ");
 };
 
 export default function CheckInScreen({ onBack }: CheckInScreenProps) {
   const [showScanner, setShowScanner] = useState(false);
-  const [step, setStep] = useState<'input' | 'confirm' | 'success'>('input');
-  const [equipmentId, setEquipmentId] = useState('');
-  const [rawScanValue, setRawScanValue] = useState('');
-  const [locationLabel, setLocationLabel] = useState<string>('');
-  const [gpsData, setGpsData] = useState<{ lat: number; lng: number; accuracy: number } | null>(null);
+  const [step, setStep] = useState<"input" | "confirm" | "success">("input");
+  const [equipmentId, setEquipmentId] = useState("");
+  const [_rawScanValue, setRawScanValue] = useState("");
+  const [locationLabel, setLocationLabel] = useState<string>("");
+  const [gpsData, setGpsData] = useState<{
+    lat: number;
+    lng: number;
+    accuracy: number;
+  } | null>(null);
   const [gpsLoading, setGpsLoading] = useState(false);
-  const [error, setError] = useState<string>('');
+  const [error, setError] = useState<string>("");
   const [isValidatingSession, setIsValidatingSession] = useState(false);
 
   // PARENT ISOLATION: Prevent scanner re-mount by freezing visibility with ref
   const scannerMountedRef = useRef(false);
 
   const { auth } = useAuth();
-  const { data: userProfile } = useGetCallerUserProfile();
+  useGetCallerUserProfile();
   const { data: equipment } = useGetEquipment(equipmentId);
   const createAssignment = useCreateAssignment();
   const updateEquipment = useUpdateEquipment();
@@ -65,13 +84,15 @@ export default function CheckInScreen({ onBack }: CheckInScreenProps) {
     }
 
     // Validate status
-    if (localEquipment.status !== 'ASSIGNED') {
-      setError(`Equipment is currently ${localEquipment.status}. Only ASSIGNED equipment can be checked in.`);
+    if (localEquipment.status !== "ASSIGNED") {
+      setError(
+        `Equipment is currently ${localEquipment.status}. Only ASSIGNED equipment can be checked in.`,
+      );
       return;
     }
 
     setEquipmentId(normalizedId);
-    setStep('confirm');
+    setStep("confirm");
     captureGPS();
   }, []);
 
@@ -88,7 +109,7 @@ export default function CheckInScreen({ onBack }: CheckInScreenProps) {
   }, []);
 
   const captureGPS = () => {
-    if ('geolocation' in navigator) {
+    if ("geolocation" in navigator) {
       setGpsLoading(true);
       navigator.geolocation.getCurrentPosition(
         (position) => {
@@ -105,65 +126,72 @@ export default function CheckInScreen({ onBack }: CheckInScreenProps) {
           setGpsLoading(false);
         },
         (error) => {
-          console.error('GPS error:', error);
-          setError('Failed to capture GPS location. Please ensure location services are enabled.');
+          console.error("GPS error:", error);
+          setError(
+            "Failed to capture GPS location. Please ensure location services are enabled.",
+          );
           setGpsLoading(false);
         },
         {
           enableHighAccuracy: true,
           timeout: 10000,
           maximumAge: 0,
-        }
+        },
       );
     } else {
-      setError('GPS is not available on this device.');
+      setError("GPS is not available on this device.");
     }
   };
 
   const handleCheckIn = async () => {
     // DEFENSIVE GUARD: Check auth state at the top
     if (auth === null || !auth.badgeId) {
-      setError('Session still loading. Please wait a moment and try again.');
-      toast.error('Session Not Ready', {
-        description: 'Session still loading. Please wait a moment and try again.',
+      setError("Session still loading. Please wait a moment and try again.");
+      toast.error("Session Not Ready", {
+        description:
+          "Session still loading. Please wait a moment and try again.",
       });
       return;
     }
 
     // Phase 2a: Validate session before write operation
     setIsValidatingSession(true);
-    setError('');
+    setError("");
 
     try {
-      console.log('[CheckInScreen] Equipment checkin uses auth as identity source');
+      console.log(
+        "[CheckInScreen] Equipment checkin uses auth as identity source",
+      );
 
       // Get operator ID from auth ONLY - single source of truth
       const operatorId = auth.badgeId || auth.user;
 
       if (!operatorId) {
-        setError('User profile not found. Please log in again.');
+        setError("User profile not found. Please log in again.");
         setIsValidatingSession(false);
         return;
       }
 
       if (!equipmentId) {
-        setError('Equipment ID is required.');
+        setError("Equipment ID is required.");
         setIsValidatingSession(false);
         return;
       }
 
       if (!gpsData || !locationLabel) {
-        toast.error('Location Required', {
-          description: 'Please wait for GPS location to be captured.',
+        toast.error("Location Required", {
+          description: "Please wait for GPS location to be captured.",
         });
-        setError('GPS location is required. Please wait for location capture to complete.');
+        setError(
+          "GPS location is required. Please wait for location capture to complete.",
+        );
         setIsValidatingSession(false);
         return;
       }
 
       // Validate session - pass the operator's badge ID for validation
       const isValid = await ensureUserContext(operatorId);
-      
+
       if (!isValid) {
         // Error message already shown by ensureUserContext
         setIsValidatingSession(false);
@@ -176,22 +204,28 @@ export default function CheckInScreen({ onBack }: CheckInScreenProps) {
       const assignmentId = `${equipmentId}-${Date.now()}`;
 
       // Update local registry status with history
-      updateEquipmentStatus(equipmentId, 'AVAILABLE', operatorId, locationLabel, 'Equipment returned');
+      updateEquipmentStatus(
+        equipmentId,
+        "AVAILABLE",
+        operatorId,
+        locationLabel,
+        "Equipment returned",
+      );
 
       // Log event to in-memory history
       logEvent({
         id: `event-${Date.now()}`,
         equipmentId,
-        eventType: 'CHECK_IN',
+        eventType: "CHECK_IN",
         operator: operatorId,
         timestamp: new Date().toISOString(),
         location: locationLabel,
-        notes: 'Equipment returned',
+        notes: "Equipment returned",
       });
 
       // Append to audit log with GPS data - using auth for user info
       appendAuditEvent({
-        action: 'checkin',
+        action: "checkin",
         equipmentId,
         locationLabel,
         lat: gpsData.lat,
@@ -210,7 +244,7 @@ export default function CheckInScreen({ onBack }: CheckInScreenProps) {
         id: assignmentId,
         equipment_id: equipmentId,
         operator_id: operatorId,
-        action: 'check_in',
+        action: "check_in",
         timestamp,
         location: locationLabel,
       });
@@ -219,7 +253,7 @@ export default function CheckInScreen({ onBack }: CheckInScreenProps) {
       await updateEquipment.mutateAsync({
         id: equipmentId,
         name: equipment?.name || equipmentId,
-        status: 'available',
+        status: "available",
         assigned_operator: undefined,
         last_location: locationLabel,
         last_update_time: timestamp,
@@ -228,58 +262,68 @@ export default function CheckInScreen({ onBack }: CheckInScreenProps) {
       // Log activity
       await logActivity.mutateAsync({
         id: `activity-${Date.now()}`,
-        action: 'check_in',
+        action: "check_in",
         user_id: operatorId,
         timestamp,
         details: `Checked in equipment ${equipmentId} at ${locationLabel}`,
       });
 
       // Show success toast
-      toast.success('Check-In Successful', {
+      toast.success("Check-In Successful", {
         description: `Equipment ${equipmentId} checked in at ${locationLabel}`,
       });
 
-      setStep('success');
+      setStep("success");
     } catch (err: any) {
-      console.error('Check-in error:', err);
-      setError(err.message || 'Failed to check in equipment. Please try again.');
-      toast.error('Check-In Failed', {
-        description: err.message || 'Failed to check in equipment. Please try again.',
+      console.error("Check-in error:", err);
+      setError(
+        err.message || "Failed to check in equipment. Please try again.",
+      );
+      toast.error("Check-In Failed", {
+        description:
+          err.message || "Failed to check in equipment. Please try again.",
       });
       setIsValidatingSession(false);
     }
   };
 
   const handleReset = () => {
-    setStep('input');
-    setEquipmentId('');
-    setRawScanValue('');
-    setLocationLabel('');
+    setStep("input");
+    setEquipmentId("");
+    setRawScanValue("");
+    setLocationLabel("");
     setGpsData(null);
     setGpsLoading(false);
-    setError('');
+    setError("");
     setIsValidatingSession(false);
   };
 
   const handleRetry = () => {
-    setError('');
-    setRawScanValue('');
+    setError("");
+    setRawScanValue("");
     handleOpenScanner();
   };
 
   // PARENT ISOLATION: Render scanner in isolated tree
   if (showScanner && scannerMountedRef.current) {
-    return <EquipmentQRScanner mode="equipment" title="Scan Equipment to Return" onScan={handleScan} onClose={handleCloseScanner} />;
+    return (
+      <EquipmentQRScanner
+        mode="equipment"
+        title="Scan Equipment to Return"
+        onScan={handleScan}
+        onClose={handleCloseScanner}
+      />
+    );
   }
 
   return (
     <div
       className="min-h-screen flex flex-col relative"
       style={{
-        backgroundImage: 'url(/assets/HomescreenBackground.jpg)',
-        backgroundSize: 'cover',
-        backgroundPosition: 'center',
-        backgroundRepeat: 'no-repeat',
+        backgroundImage: "url(/assets/HomescreenBackground.jpg)",
+        backgroundSize: "cover",
+        backgroundPosition: "center",
+        backgroundRepeat: "no-repeat",
       }}
     >
       <div className="absolute inset-0 bg-gradient-to-br from-black/40 via-black/60 to-black/50 backdrop-blur-[2px]" />
@@ -296,55 +340,70 @@ export default function CheckInScreen({ onBack }: CheckInScreenProps) {
 
         <main className="flex-1 container mx-auto px-4 py-8">
           <div className="max-w-2xl mx-auto">
-            {step === 'input' && (
+            {step === "input" && (
               <Card
                 className="border shadow-2xl"
                 style={{
-                  background: 'rgba(15, 23, 42, 0.92)',
-                  borderColor: 'rgba(255,255,255,0.18)',
-                  borderRadius: '16px',
-                  boxShadow: '0 16px 40px rgba(0,0,0,0.45)',
+                  background: "rgba(15, 23, 42, 0.92)",
+                  borderColor: "rgba(255,255,255,0.18)",
+                  borderRadius: "16px",
+                  boxShadow: "0 16px 40px rgba(0,0,0,0.45)",
                 }}
               >
                 <CardHeader>
-                  <CardTitle style={{ color: '#ffffff' }}>Check In Equipment</CardTitle>
+                  <CardTitle style={{ color: "#ffffff" }}>
+                    Check In Equipment
+                  </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   {error && (
                     <Alert variant="destructive">
                       <AlertCircle className="h-4 w-4" />
-                      <AlertDescription style={{ color: '#cbd5f5' }}>
+                      <AlertDescription style={{ color: "#cbd5f5" }}>
                         {error}
-                        <Button onClick={handleRetry} variant="outline" size="sm" className="mt-2 w-full">
+                        <Button
+                          onClick={handleRetry}
+                          variant="outline"
+                          size="sm"
+                          className="mt-2 w-full"
+                        >
                           Try again
                         </Button>
                       </AlertDescription>
                     </Alert>
                   )}
-                  <Button onClick={handleOpenScanner} className="w-full py-6 text-lg">
+                  <Button
+                    onClick={handleOpenScanner}
+                    className="w-full py-6 text-lg"
+                  >
                     Start QR Scanner
                   </Button>
                 </CardContent>
               </Card>
             )}
 
-            {step === 'confirm' && (
+            {step === "confirm" && (
               <Card
                 className="border shadow-2xl"
                 style={{
-                  background: 'rgba(15, 23, 42, 0.92)',
-                  borderColor: 'rgba(255,255,255,0.18)',
-                  borderRadius: '16px',
-                  boxShadow: '0 16px 40px rgba(0,0,0,0.45)',
+                  background: "rgba(15, 23, 42, 0.92)",
+                  borderColor: "rgba(255,255,255,0.18)",
+                  borderRadius: "16px",
+                  boxShadow: "0 16px 40px rgba(0,0,0,0.45)",
                 }}
               >
                 <CardHeader>
-                  <CardTitle style={{ color: '#ffffff' }}>Confirm Check-In</CardTitle>
+                  <CardTitle style={{ color: "#ffffff" }}>
+                    Confirm Check-In
+                  </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div>
-                    <Label style={{ color: '#cbd5f5' }}>Equipment ID</Label>
-                    <p className="text-lg font-semibold mt-1" style={{ color: '#ffffff' }}>
+                    <Label style={{ color: "#cbd5f5" }}>Equipment ID</Label>
+                    <p
+                      className="text-lg font-semibold mt-1"
+                      style={{ color: "#ffffff" }}
+                    >
                       {equipmentId}
                     </p>
                     {(() => {
@@ -352,11 +411,17 @@ export default function CheckInScreen({ onBack }: CheckInScreenProps) {
                       if (localEquipment) {
                         return (
                           <>
-                            <p className="text-sm mt-1" style={{ color: '#cbd5f5' }}>
+                            <p
+                              className="text-sm mt-1"
+                              style={{ color: "#cbd5f5" }}
+                            >
                               Type: {formatEquipmentType(localEquipment.type)}
                             </p>
                             {localEquipment.label && (
-                              <p className="text-sm" style={{ color: '#cbd5f5' }}>
+                              <p
+                                className="text-sm"
+                                style={{ color: "#cbd5f5" }}
+                              >
                                 Label: {localEquipment.label}
                               </p>
                             )}
@@ -368,23 +433,29 @@ export default function CheckInScreen({ onBack }: CheckInScreenProps) {
                   </div>
 
                   <div>
-                    <Label style={{ color: '#cbd5f5' }}>
+                    <Label style={{ color: "#cbd5f5" }}>
                       <MapPin className="inline h-4 w-4 mr-1" />
                       Location
                     </Label>
                     {gpsLoading ? (
                       <div className="flex items-center gap-2 mt-2">
-                        <Loader2 className="h-4 w-4 animate-spin" style={{ color: '#cbd5f5' }} />
-                        <p className="text-sm" style={{ color: '#cbd5f5' }}>
+                        <Loader2
+                          className="h-4 w-4 animate-spin"
+                          style={{ color: "#cbd5f5" }}
+                        />
+                        <p className="text-sm" style={{ color: "#cbd5f5" }}>
                           Detecting location...
                         </p>
                       </div>
                     ) : locationLabel ? (
-                      <p className="text-lg font-semibold mt-1" style={{ color: '#ffffff' }}>
+                      <p
+                        className="text-lg font-semibold mt-1"
+                        style={{ color: "#ffffff" }}
+                      >
                         {locationLabel}
                       </p>
                     ) : (
-                      <p className="text-sm mt-1" style={{ color: '#cbd5f5' }}>
+                      <p className="text-sm mt-1" style={{ color: "#cbd5f5" }}>
                         Waiting for GPS...
                       </p>
                     )}
@@ -393,17 +464,28 @@ export default function CheckInScreen({ onBack }: CheckInScreenProps) {
                   {error && (
                     <Alert variant="destructive">
                       <AlertCircle className="h-4 w-4" />
-                      <AlertDescription style={{ color: '#cbd5f5' }}>{error}</AlertDescription>
+                      <AlertDescription style={{ color: "#cbd5f5" }}>
+                        {error}
+                      </AlertDescription>
                     </Alert>
                   )}
 
                   <div className="flex gap-2 pt-4">
-                    <Button onClick={handleReset} variant="outline" className="flex-1">
+                    <Button
+                      onClick={handleReset}
+                      variant="outline"
+                      className="flex-1"
+                    >
                       Cancel
                     </Button>
-                    <Button 
-                      onClick={handleCheckIn} 
-                      disabled={createAssignment.isPending || gpsLoading || !locationLabel || isValidatingSession} 
+                    <Button
+                      onClick={handleCheckIn}
+                      disabled={
+                        createAssignment.isPending ||
+                        gpsLoading ||
+                        !locationLabel ||
+                        isValidatingSession
+                      }
                       className="flex-1"
                     >
                       {isValidatingSession ? (
@@ -417,7 +499,7 @@ export default function CheckInScreen({ onBack }: CheckInScreenProps) {
                           Processing...
                         </>
                       ) : (
-                        'Confirm Check-In'
+                        "Confirm Check-In"
                       )}
                     </Button>
                   </div>
@@ -425,29 +507,38 @@ export default function CheckInScreen({ onBack }: CheckInScreenProps) {
               </Card>
             )}
 
-            {step === 'success' && (
+            {step === "success" && (
               <Card
                 className="border shadow-2xl"
                 style={{
-                  background: 'rgba(15, 23, 42, 0.92)',
-                  borderColor: 'rgba(255,255,255,0.18)',
-                  borderRadius: '16px',
-                  boxShadow: '0 16px 40px rgba(0,0,0,0.45)',
+                  background: "rgba(15, 23, 42, 0.92)",
+                  borderColor: "rgba(255,255,255,0.18)",
+                  borderRadius: "16px",
+                  boxShadow: "0 16px 40px rgba(0,0,0,0.45)",
                 }}
               >
                 <CardContent className="py-12 text-center space-y-4">
                   <CheckCircle2 className="h-16 w-16 text-green-500 mx-auto" />
-                  <h2 className="text-2xl font-bold" style={{ color: '#ffffff' }}>
+                  <h2
+                    className="text-2xl font-bold"
+                    style={{ color: "#ffffff" }}
+                  >
                     Check-In Successful!
                   </h2>
-                  <p style={{ color: '#cbd5f5' }}>Equipment {equipmentId} has been returned.</p>
+                  <p style={{ color: "#cbd5f5" }}>
+                    Equipment {equipmentId} has been returned.
+                  </p>
                   {locationLabel && (
-                    <p className="text-sm" style={{ color: '#cbd5f5' }}>
+                    <p className="text-sm" style={{ color: "#cbd5f5" }}>
                       Location: {locationLabel}
                     </p>
                   )}
                   <div className="flex gap-2 pt-4">
-                    <Button onClick={handleReset} variant="outline" className="flex-1">
+                    <Button
+                      onClick={handleReset}
+                      variant="outline"
+                      className="flex-1"
+                    >
                       Check In Another
                     </Button>
                     <Button onClick={onBack} className="flex-1">

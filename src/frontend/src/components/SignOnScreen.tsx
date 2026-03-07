@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect } from "react";
 
 interface CurrentUser {
   username: string;
@@ -12,7 +12,12 @@ interface SignOnScreenProps {
   onBack: () => void;
 }
 
-export default function SignOnScreen({ currentUser, onAgentLogin, onAdminLogin, onBack }: SignOnScreenProps) {
+export default function SignOnScreen({
+  currentUser,
+  onAgentLogin,
+  onAdminLogin,
+  onBack,
+}: SignOnScreenProps) {
   // Redirect to login if no user
   useEffect(() => {
     if (!currentUser) {
@@ -24,27 +29,29 @@ export default function SignOnScreen({ currentUser, onAgentLogin, onAdminLogin, 
     return null;
   }
 
-  const hasAdminRole = currentUser.roles.includes('admin');
-  const isAgentOnly = currentUser.roles.length === 1 && currentUser.roles[0] === 'agent';
+  const hasAdminRole = currentUser.roles.includes("admin");
+  const isAgentOnly =
+    currentUser.roles.length === 1 && currentUser.roles[0] === "agent";
 
   return (
-    <div 
+    <div
       className="fixed inset-0 flex flex-col items-center justify-center p-6"
       style={{
-        backgroundImage: 'url(/assets/SignInBackgroundLower.jpg)',
-        backgroundSize: 'cover',
-        backgroundPosition: 'center',
-        backgroundRepeat: 'no-repeat'
+        backgroundImage: "url(/assets/SignInBackgroundLower.jpg)",
+        backgroundSize: "cover",
+        backgroundPosition: "center",
+        backgroundRepeat: "no-repeat",
       }}
     >
       <div className="w-full max-w-md flex flex-col items-center gap-6 md:gap-8">
         <button
+          type="button"
           onClick={onAgentLogin}
           className="w-[36%] max-w-xs transition-transform active:scale-95 hover:scale-105 focus:outline-none focus:ring-4 focus:ring-blue-500/50 rounded-2xl"
           aria-label="Agent Login"
         >
-          <img 
-            src="/assets/AgentLogin.png" 
+          <img
+            src="/assets/AgentLogin.png"
             alt="Agent Login"
             className="w-full h-auto rounded-2xl shadow-2xl"
           />
@@ -52,12 +59,13 @@ export default function SignOnScreen({ currentUser, onAgentLogin, onAdminLogin, 
 
         {!isAgentOnly && hasAdminRole && (
           <button
+            type="button"
             onClick={onAdminLogin}
             className="w-[36%] max-w-xs transition-transform active:scale-95 hover:scale-105 focus:outline-none focus:ring-4 focus:ring-orange-500/50 rounded-2xl"
             aria-label="Management / Admin Login"
           >
-            <img 
-              src="/assets/managementlogin.png" 
+            <img
+              src="/assets/managementlogin.png"
               alt="Management / Admin Login"
               className="w-full h-auto rounded-2xl shadow-2xl"
             />
@@ -65,6 +73,7 @@ export default function SignOnScreen({ currentUser, onAgentLogin, onAdminLogin, 
         )}
 
         <button
+          type="button"
           onClick={onBack}
           className="mt-4 px-6 py-3 rounded-lg bg-white/10 hover:bg-white/20 text-white border border-white/30 transition-colors"
         >

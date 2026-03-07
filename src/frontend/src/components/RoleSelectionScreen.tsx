@@ -1,7 +1,7 @@
-import { Button } from '@/components/ui/button';
-import { ArrowLeft } from 'lucide-react';
-import { CurrentUser } from '../App';
-import { useAuth } from '../contexts/AuthContext';
+import { Button } from "@/components/ui/button";
+import { ArrowLeft } from "lucide-react";
+import type { CurrentUser } from "../App";
+import { useAuth } from "../contexts/AuthContext";
 
 interface RoleSelectionScreenProps {
   currentUser: CurrentUser | null;
@@ -11,7 +11,7 @@ interface RoleSelectionScreenProps {
 }
 
 export default function RoleSelectionScreen({
-  currentUser,
+  currentUser: _currentUser,
   onContinueAsAgent,
   onContinueToAdmin,
   onBack,
@@ -20,21 +20,24 @@ export default function RoleSelectionScreen({
 
   // Display name using ONLY auth context - single source of truth
   const getDisplayName = (): string => {
-    console.log('[RoleSelectionScreen] Header name source = auth');
-    
+    console.log("[RoleSelectionScreen] Header name source = auth");
+
     if (!auth) {
-      console.warn('[RoleSelectionScreen] auth is null, showing fallback');
-      return 'Unknown User';
+      console.warn("[RoleSelectionScreen] auth is null, showing fallback");
+      return "Unknown User";
     }
-    
+
     // Use auth.name with fallback to badgeId
-    const displayName = auth.name ?? auth.badgeId ?? 'Unknown User';
-    
+    const displayName = auth.name ?? auth.badgeId ?? "Unknown User";
+
     // Log warning if name is missing
     if (!auth.name) {
-      console.warn('[RoleSelectionScreen] auth.name is missing, using fallback:', displayName);
+      console.warn(
+        "[RoleSelectionScreen] auth.name is missing, using fallback:",
+        displayName,
+      );
     }
-    
+
     return displayName;
   };
 
@@ -42,10 +45,10 @@ export default function RoleSelectionScreen({
     <div
       className="fixed inset-0 flex flex-col"
       style={{
-        backgroundImage: 'url(/assets/HomescreenBackground.jpg)',
-        backgroundSize: 'cover',
-        backgroundPosition: 'center',
-        backgroundRepeat: 'no-repeat',
+        backgroundImage: "url(/assets/HomescreenBackground.jpg)",
+        backgroundSize: "cover",
+        backgroundPosition: "center",
+        backgroundRepeat: "no-repeat",
       }}
     >
       {/* Header with back button and signed-in user display */}
@@ -80,6 +83,7 @@ export default function RoleSelectionScreen({
         <div className="w-full flex flex-col items-center gap-5">
           {/* Continue as Agent - Image Button */}
           <button
+            type="button"
             onClick={onContinueAsAgent}
             className="transition-all duration-200 active:scale-95 hover:opacity-90 focus:outline-none focus:ring-4 focus:ring-blue-500/50 rounded-xl shadow-lg"
           >
@@ -88,16 +92,17 @@ export default function RoleSelectionScreen({
               alt="Continue as Agent"
               className="h-auto rounded-xl"
               style={{
-                width: '75vw',
-                maxWidth: '80vw',
-                maxHeight: '220px',
-                objectFit: 'contain',
+                width: "75vw",
+                maxWidth: "80vw",
+                maxHeight: "220px",
+                objectFit: "contain",
               }}
             />
           </button>
 
           {/* Continue to Admin - Image Button */}
           <button
+            type="button"
             onClick={onContinueToAdmin}
             className="transition-all duration-200 active:scale-95 hover:opacity-90 focus:outline-none focus:ring-4 focus:ring-orange-500/50 rounded-xl shadow-lg"
           >
@@ -106,10 +111,10 @@ export default function RoleSelectionScreen({
               alt="Continue to Admin"
               className="h-auto rounded-xl"
               style={{
-                width: '75vw',
-                maxWidth: '80vw',
-                maxHeight: '220px',
-                objectFit: 'contain',
+                width: "75vw",
+                maxWidth: "80vw",
+                maxHeight: "220px",
+                objectFit: "contain",
               }}
             />
           </button>

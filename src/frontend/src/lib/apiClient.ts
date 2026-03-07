@@ -1,4 +1,4 @@
-import { handleAuthError } from './ensureUserContext';
+import { handleAuthError } from "./ensureUserContext";
 
 /**
  * Centralized API client utility for making authenticated requests.
@@ -8,7 +8,7 @@ import { handleAuthError } from './ensureUserContext';
  */
 
 interface RequestOptions {
-  method?: 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH';
+  method?: "GET" | "POST" | "PUT" | "DELETE" | "PATCH";
   headers?: Record<string, string>;
   body?: any;
   queryParams?: Record<string, string | number | boolean>;
@@ -17,7 +17,7 @@ interface RequestOptions {
 // Structured error result for profile-missing errors
 export interface ApiErrorResult {
   ok: false;
-  code: 'PROFILE_MISSING' | 'AUTH_FAILED' | 'NETWORK_ERROR' | 'UNKNOWN';
+  code: "PROFILE_MISSING" | "AUTH_FAILED" | "NETWORK_ERROR" | "UNKNOWN";
   message: string;
 }
 
@@ -29,11 +29,13 @@ const refreshStateListeners: Set<(refreshing: boolean) => void> = new Set();
  * Subscribe to refresh state changes
  * Returns unsubscribe function
  */
-export function subscribeToRefreshState(listener: (refreshing: boolean) => void): () => void {
+export function subscribeToRefreshState(
+  listener: (refreshing: boolean) => void,
+): () => void {
   refreshStateListeners.add(listener);
   // Immediately notify of current state
   listener(isRefreshing);
-  
+
   return () => {
     refreshStateListeners.delete(listener);
   };
@@ -42,15 +44,15 @@ export function subscribeToRefreshState(listener: (refreshing: boolean) => void)
 /**
  * Update refresh state and notify all listeners
  */
-function setRefreshState(refreshing: boolean): void {
+function _setRefreshState(refreshing: boolean): void {
   isRefreshing = refreshing;
-  refreshStateListeners.forEach(listener => {
+  for (const listener of refreshStateListeners) {
     try {
       listener(refreshing);
     } catch (error) {
-      console.error('[apiClient] Error in refresh state listener:', error);
+      console.error("[apiClient] Error in refresh state listener:", error);
     }
-  });
+  }
 }
 
 /**
@@ -59,11 +61,11 @@ function setRefreshState(refreshing: boolean): void {
 function isProfileMissingError(errorMessage: string): boolean {
   const lowerMessage = errorMessage.toLowerCase();
   return (
-    lowerMessage.includes('user profile not found') ||
-    lowerMessage.includes('profile not found') ||
-    lowerMessage.includes('unauthorized: only users can view profiles') ||
-    lowerMessage.includes('profiles') ||
-    lowerMessage.includes('getcalleruserprofile')
+    lowerMessage.includes("user profile not found") ||
+    lowerMessage.includes("profile not found") ||
+    lowerMessage.includes("unauthorized: only users can view profiles") ||
+    lowerMessage.includes("profiles") ||
+    lowerMessage.includes("getcalleruserprofile")
   );
 }
 
@@ -72,9 +74,9 @@ function isProfileMissingError(errorMessage: string): boolean {
  */
 export async function apiRequest<T>(
   endpoint: string,
-  options: RequestOptions = {}
+  options: RequestOptions = {},
 ): Promise<T | ApiErrorResult> {
-  const { method = 'GET', headers = {}, body, queryParams } = options;
+  const { method = "GET", headers = {}, body, queryParams } = options;
 
   // Build URL with query parameters
   let url = endpoint;
@@ -84,17 +86,17 @@ export async function apiRequest<T>(
   }
 
   // Get auth token from localStorage
-  const authToken = localStorage.getItem('ramptrack_auth_token');
+  const authToken = localStorage.getItem("ramptrack_auth_token");
 
   // Build request headers
   const requestHeaders: Record<string, string> = {
-    'Content-Type': 'application/json',
+    "Content-Type": "application/json",
     ...headers,
   };
 
   // Add auth token if available
   if (authToken) {
-    requestHeaders['Authorization'] = `Bearer ${authToken}`;
+    requestHeaders.Authorization = `Bearer ${authToken}`;
   }
 
   // Build request options
@@ -104,7 +106,7 @@ export async function apiRequest<T>(
   };
 
   // Add body for non-GET requests
-  if (body && method !== 'GET') {
+  if (body && method !== "GET") {
     requestOptions.body = JSON.stringify(body);
   }
 
@@ -114,8 +116,8 @@ export async function apiRequest<T>(
     // Handle authentication errors (401/403)
     if (response.status === 401 || response.status === 403) {
       const errorText = await response.text();
-      let errorMessage = 'Authentication failed';
-      
+      let errorMessage = "Authentication failed";
+
       try {
         const errorJson = JSON.parse(errorText);
         errorMessage = errorJson.message || errorMessage;
@@ -125,13 +127,15 @@ export async function apiRequest<T>(
 
       // Check if this is a profile-missing error (non-fatal)
       if (isProfileMissingError(errorMessage)) {
-        console.log('[apiClient] Profile missing error detected - returning structured result');
-        
+        console.log(
+          "[apiClient] Profile missing error detected - returning structured result",
+        );
+
         // Return structured result instead of throwing
         return {
           ok: false,
-          code: 'PROFILE_MISSING',
-          message: 'User profile missing; using local context.',
+          code: "PROFILE_MISSING",
+          message: "User profile missing; using local context.",
         } as ApiErrorResult;
       }
 
@@ -140,7 +144,7 @@ export async function apiRequest<T>(
         status: response.status,
         message: errorMessage,
       });
-      
+
       throw new Error(errorMessage);
     }
 
@@ -148,7 +152,7 @@ export async function apiRequest<T>(
     if (!response.ok) {
       const errorText = await response.text();
       let errorMessage = `Request failed with status ${response.status}`;
-      
+
       try {
         const errorJson = JSON.parse(errorText);
         errorMessage = errorJson.message || errorMessage;
@@ -164,30 +168,35 @@ export async function apiRequest<T>(
     return data as T;
   } catch (error) {
     // Check if this is a network error
-    if (error instanceof TypeError && error.message.includes('fetch')) {
+    if (error instanceof TypeError && error.message.includes("fetch")) {
       return {
         ok: false,
-        code: 'NETWORK_ERROR',
-        message: 'Network request failed. Please check your connection.',
+        code: "NETWORK_ERROR",
+        message: "Network request failed. Please check your connection.",
       } as ApiErrorResult;
     }
-    
+
     // Convert error to user-friendly message
     if (error instanceof Error) {
       throw error;
     }
-    throw new Error('Network request failed. Please check your connection.');
+    throw new Error("Network request failed. Please check your connection.");
   }
 }
 
 /**
  * Build query string from object
  */
-export function buildQueryString(params: Record<string, string | number | boolean>): string {
+export function buildQueryString(
+  params: Record<string, string | number | boolean>,
+): string {
   return Object.entries(params)
     .filter(([_, value]) => value !== undefined && value !== null)
-    .map(([key, value]) => `${encodeURIComponent(key)}=${encodeURIComponent(String(value))}`)
-    .join('&');
+    .map(
+      ([key, value]) =>
+        `${encodeURIComponent(key)}=${encodeURIComponent(String(value))}`,
+    )
+    .join("&");
 }
 
 /**
@@ -197,8 +206,8 @@ export function getErrorMessage(error: unknown): string {
   if (error instanceof Error) {
     return error.message;
   }
-  if (typeof error === 'string') {
+  if (typeof error === "string") {
     return error;
   }
-  return 'An unexpected error occurred. Please try again.';
+  return "An unexpected error occurred. Please try again.";
 }
