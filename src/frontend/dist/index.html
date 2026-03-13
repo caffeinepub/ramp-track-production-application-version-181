@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/png" href="/assets/AppThumbnail.png" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <meta name="theme-color" content="#0f172a" />
+    <meta name="description" content="Ramp Track - Equipment tracking and management system" />
+    <link rel="manifest" href="/manifest.json" />
+    <link rel="apple-touch-icon" href="/assets/AppThumbnail.png" />
+    <title>Ramp Track</title>
+    <script type="module" crossorigin src="/assets/index-nZTNtbdV.js"></script>
+    <link rel="stylesheet" crossorigin href="/assets/index-11xB6Zem.css">
+  </head>
+  <body>
+    <div id="root"></div>
+    
+    <!-- Service Worker Registration with conditional loading and auto-update -->
+    <script>
+      (function() {
+        'use strict';
+        
+        // Check for nosw parameter
+        const urlParams = new URLSearchParams(window.location.search);
+        const noServiceWorker = urlParams.get('nosw') === '1';
+        
+        if (noServiceWorker) {
+          console.log('[SW] Service worker registration skipped (nosw=1 parameter detected)');
+          return;
+        }
+        
+        if ('serviceWorker' in navigator) {
+          window.addEventListener('load', function() {
+            navigator.serviceWorker.register('/sw.js')
+              .then(function(registration) {
+                console.log('[SW] Registration successful, scope:', registration.scope);
+                
+                // Force immediate update check
+                registration.update().then(function() {
+                  console.log('[SW] Update check completed');
+                }).catch(function(err) {
+                  console.warn('[SW] Update check failed:', err);
+                });
+                
+                // Listen for controller change (new SW activated)
+                navigator.serviceWorker.addEventListener('controllerchange', function() {
+                  console.log('[SW] Controller changed - new version activated');
+                  console.log('[SW] Reloading page to use new version...');
+                  window.location.reload();
+                });
+                
+                // Listen for updates
+                registration.addEventListener('updatefound', function() {
+                  const newWorker = registration.installing;
+                  console.log('[SW] Update found, new worker installing...');
+                  
+                  newWorker.addEventListener('statechange', function() {
+                    console.log('[SW] New worker state:', newWorker.state);
+                    
+                    if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                      console.log('[SW] New version available, will reload in 1 second...');
+                      
+                      // Auto-reload after brief delay
+                      setTimeout(function() {
+                        console.log('[SW] Reloading to activate new version...');
+                        window.location.reload();
+                      }, 1000);
+                      
+                      // Alternative: Prompt user (commented out)
+                      // if (confirm('New version available! Reload to update?')) {
+                      //   window.location.reload();
+                      // }
+                    }
+                  });
+                });
+                
+                // Periodic update checks (every 60 seconds)
+                setInterval(function() {
+                  console.log('[SW] Performing periodic update check...');
+                  registration.update().catch(function(err) {
+                    console.warn('[SW] Periodic update check failed:', err);
+                  });
+                }, 60000);
+              })
+              .catch(function(err) {
+                console.error('[SW] Registration failed:', err);
+              });
+          });
+        } else {
+          console.warn('[SW] Service workers not supported in this browser');
+        }
+      })();
+    </script>
+  </body>
+</html>

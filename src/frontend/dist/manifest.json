@@ -1,0 +1,102 @@
+{
+  "name": "Ramp Track",
+  "short_name": "RampTrack",
+  "description": "Ramp Track helps airport ground operators manage equipment check-ins, check-outs, and issue reporting with scanning, GPS, and photo capture.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "theme_color": "#1e3a8a",
+  "background_color": "#0f172a",
+  "lang": "en",
+  "dir": "ltr",
+  "categories": ["productivity", "business", "utilities"],
+  "icons": [
+    {
+      "src": "/assets/AppThumbnail.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/assets/AppThumbnail.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/assets/AppThumbnail.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/assets/AppThumbnail.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "/assets/AppThumbnail.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "Ramp Track Home Screen"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Take Equipment",
+      "short_name": "Check Out",
+      "description": "Check out equipment",
+      "url": "/?action=checkout",
+      "icons": [
+        {
+          "src": "/assets/Check_Out_Icon-1.png",
+          "sizes": "96x96",
+          "type": "image/png"
+        }
+      ]
+    },
+    {
+      "name": "Return Equipment",
+      "short_name": "Check In",
+      "description": "Check in equipment",
+      "url": "/?action=checkin",
+      "icons": [
+        {
+          "src": "/assets/Check_In_Icon-1.png",
+          "sizes": "96x96",
+          "type": "image/png"
+        }
+      ]
+    },
+    {
+      "name": "Report Issue",
+      "short_name": "Report",
+      "description": "Report equipment issue",
+      "url": "/?action=report",
+      "icons": [
+        {
+          "src": "/assets/Report_Issue_Icon-1.png",
+          "sizes": "96x96",
+          "type": "image/png"
+        }
+      ]
+    }
+  ],
+  "prefer_related_applications": false,
+  "related_applications": [],
+  "share_target": {
+    "action": "/",
+    "method": "GET",
+    "enctype": "application/x-www-form-urlencoded",
+    "params": {
+      "title": "title",
+      "text": "text",
+      "url": "url"
+    }
+  }
+}
